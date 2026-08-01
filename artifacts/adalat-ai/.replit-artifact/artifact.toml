@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Adalat AI"
+description = "A voice-based courtroom practice platform for Pakistani law students. Students argue real and AI-generated case scenarios (criminal, civil, constitutional, family, contract, property, corporate, tort) against an AI opposing counsel and AI judge — delivering opening statements, examining witnesses, handling cross-examination, and closing arguments — then receive a scored verdict and feedback to prepare for final-year moot court and practical exams."
+version = "1.0.0"
+id = "artifacts/adalat-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22315
+
+[services.development]
+run = "pnpm --filter @workspace/adalat-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/adalat-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/adalat-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22315"
+BASE_PATH = "/"
