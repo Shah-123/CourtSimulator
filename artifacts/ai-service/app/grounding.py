@@ -1,0 +1,220 @@
+"""Binding generated content to provisions that actually exist."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from app.rag.index import get_index
+from app.rag.retrieval import RetrievedSection, search_statutes
+
+# Seed queries used to pull a palette of provisions before a case exists.
+#
+# Case generation is a chicken-and-egg problem: we cannot retrieve law relevant
+# to a case that has not been written yet. Each area maps to a broad query
+# surfacing the provisions that area typically turns on, and the generator is
+# then constrained to cite only from that palette.
+#
+# Areas with no corpus coverage deliberately have no statute filter — retrieval
+# runs across everything and returns weaker matches, which the post-generation
+# verification step catches.
+AREA_SEED_QUERIES: dict[str, tuple[str, list[str] | None]] = {
+    "Criminal": (
+        "offence punishment intention culpable homicide theft cheating hurt "
+        "investigation arrest bail evidence of witnesses",
+        ["PPC_1860", "CRPC_1898", "QSO_1984"],
+    ),
+    "Constitutional": (
+        "fundamental rights due process equality before law writ jurisdiction "
+        "of High Court liberty fair trial",
+        ["CONST_1973", "QSO_1984"],
+    ),
+    "Civil": (
+        "civil rights and obligations proof of documents burden of proof "
+        "relief against public authority",
+        None,
+    ),
+    "Family": (
+        "marriage dissolution maintenance guardianship inheritance shares of "
+        "heirs competence of witnesses",
+        None,
+    ),
+    "Contract": (
+        "agreement consideration breach of contract dishonestly issuing a "
+        "cheque criminal breach of trust proof of documents",
+        ["PPC_1860", "QSO_1984"],
+    ),
+    "Property": (
+        "possession of property transfer title mutation dishonest "
+        "misappropriation proof of title documents",
+        None,
+    ),
+    "Corporate": (
+        "company director fiduciary duty fraud cheating criminal breach of "
+        "trust falsification of accounts",
+        ["PPC_1860", "QSO_1984"],
+    ),
+    "Tort": (
+        "negligence hurt caused to person compensation damages liability for "
+        "act causing harm",
+        None,
+    ),
+}
+
+
+async def retrieve_area_palette(
+    area_of_law: str, limit: int = 12
+) -> list[RetrievedSection]:
+    """Retrieves the palette of provisions a generated case may cite from."""
+    query, codes = AREA_SEED_QUERIES.get(
+        area_of_law, (f"{area_of_law} law dispute in Pakistan", None)
+    )
+    # Reranking a broad seed query wastes a call: at this stage we want recall
+    # across the area, not precision on one question.
+    return await search_statutes(
+        query, top_k=limit, statute_codes=codes, rerank=False
+    )
+
+
+# ---------------------------------------------------------------------------
+# Objection grounds
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class GroundDefinition:
+    id: str
+    label: str
+    statute_code: str
+    section_number: str
+    description: str
+
+
+# Each ground is bound to a specific provision. Defining them here and
+# resolving headings from the corpus means a ground can only be offered if the
+# provision behind it exists — the UI cannot drift from the statute book.
+#
+# These were previously hardcoded in the web app, where "leading question" was
+# attributed to QSO Art. 121. Leading questions are Arts. 136-138.
+GROUND_DEFINITIONS: list[GroundDefinition] = [
+    GroundDefinition(
+        "hearsay",
+        "Hearsay",
+        "QSO_1984",
+        "71",
+        "The witness is relating what someone else said rather than what they "
+        "directly perceived.",
+    ),
+    GroundDefinition(
+        "leading_question",
+        "Leading question in examination-in-chief",
+        "QSO_1984",
+        "137",
+        "Counsel is suggesting the desired answer to their own witness.",
+    ),
+    GroundDefinition(
+        "insulting_question",
+        "Questions intended to insult or annoy",
+        "QSO_1984",
+        # Art. 148, not 143. The corpus originally filed this text under 143,
+        # which is "Court to decide when question shall be asked"; the citation
+        # audit could not catch it because the audit's ground truth *is* the
+        # corpus. Confirmed against the official text with
+        # `pnpm run statutes:verify qso-1984`.
+        "148",
+        "The question is needlessly offensive in form or designed to harass "
+        "the witness.",
+    ),
+    GroundDefinition(
+        "secondary_evidence",
+        "Secondary evidence without foundation",
+        "QSO_1984",
+        # Art. 75 ("Proof of documents by primary evidence"), not 76. The
+        # corpus had the whole documentary-evidence block shifted up by one —
+        # its 75/76/77 were the official 74/75/76 — so this ground cited the
+        # provision listing the *exceptions* rather than the rule requiring
+        # primary evidence. Confirmed with `pnpm run statutes:verify qso-1984`.
+        "75",
+        "A copy is being tendered where the original is required and no "
+        "exception has been established.",
+    ),
+    GroundDefinition(
+        "irrelevant",
+        "Irrelevant to the facts in issue",
+        "QSO_1984",
+        "133",
+        "The examination has strayed beyond the relevant facts of the case.",
+    ),
+    GroundDefinition(
+        "improper_impeachment",
+        "Improper impeachment of the witness",
+        "QSO_1984",
+        "151",
+        "Credit is being attacked otherwise than in the manner the law permits.",
+    ),
+    GroundDefinition(
+        "police_statement",
+        "Improper use of a statement made to police",
+        "CRPC_1898",
+        "162",
+        "A section 161 statement is being used for a purpose the Code forbids.",
+    ),
+]
+
+
+@dataclass(slots=True)
+class ObjectionGround:
+    id: str
+    label: str
+    description: str
+    citation: str
+    heading: str
+    content: str
+    verified: bool
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "description": self.description,
+            "citation": self.citation,
+            "heading": self.heading,
+            "content": self.content,
+            "verified": self.verified,
+        }
+
+
+async def list_objection_grounds() -> list[ObjectionGround]:
+    """Returns only grounds whose backing provision is present in the corpus.
+
+    A ground we cannot cite is a ground we do not offer.
+    """
+    index = await get_index()
+    by_key = {
+        f"{section.statute_code}:{section.section_number}": section
+        for section in index.sections
+    }
+
+    grounds: list[ObjectionGround] = []
+    for definition in GROUND_DEFINITIONS:
+        section = by_key.get(f"{definition.statute_code}:{definition.section_number}")
+        if section is None:
+            continue
+        grounds.append(
+            ObjectionGround(
+                id=definition.id,
+                label=definition.label,
+                description=definition.description,
+                citation=section.citation,
+                heading=section.heading,
+                content=section.content,
+                verified=section.verified,
+            )
+        )
+    return grounds
+
+
+async def find_objection_ground(ground_id: str) -> ObjectionGround | None:
+    for ground in await list_objection_grounds():
+        if ground.id == ground_id:
+            return ground
+    return None

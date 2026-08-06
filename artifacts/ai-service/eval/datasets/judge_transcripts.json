@@ -1,0 +1,47 @@
+{
+  "description": "Judge evaluation set. Three transcripts of the SAME case at different advocacy quality, so score differences reflect performance, not case difficulty. `expectedRank` 1 is best. The weak transcript cites provisions that do not exist (PPC s.899, QSO Art. 512) — the citation audit should catch them and the judge should penalise the legal-reasoning score accordingly.",
+  "case": {
+    "title": "State v. Bilal Ahmed",
+    "areaOfLaw": "Criminal",
+    "summary": "Bilal Ahmed is charged with the qatl-i-amd of Kamran Shah, stabbed outside a market in Lahore. The prosecution relies on a single eyewitness, Sana Arif, and a recovered knife.",
+    "applicableLaws": "Pakistan Penal Code 1860; Qanun-e-Shahadat Order 1984",
+    "studentSide": "petitioner"
+  },
+  "transcripts": [
+    {
+      "id": "strong",
+      "tier": "strong",
+      "expectedRank": 1,
+      "turns": [
+        { "phase": "opening", "speaker": "student", "witnessName": null, "transcript": "My Lord, the prosecution will establish that the accused committed qatl-i-amd within the meaning of section 300 of the Pakistan Penal Code, punishable under section 302. We rely on the direct testimony of an eyewitness, which is admissible as direct oral evidence under Article 71 of the Qanun-e-Shahadat Order 1984." },
+        { "phase": "opening", "speaker": "judge", "witnessName": null, "transcript": "Proceed, counsel. The Bench will expect you to establish intention." },
+        { "phase": "witness_examination", "speaker": "student", "witnessName": null, "transcript": "Ms. Arif, please tell the court in your own words what you personally saw on the night in question." },
+        { "phase": "witness_examination", "speaker": "witness", "witnessName": "Sana Arif", "transcript": "I saw the accused raise a knife and stab Kamran Shah once in the chest, then run towards the alley." },
+        { "phase": "cross_examination", "speaker": "student", "witnessName": null, "transcript": "The defence suggests mere presence, but the recovered weapon and the eyewitness account together establish intention under section 300. The act was deliberate, not accidental." },
+        { "phase": "closing", "speaker": "student", "witnessName": null, "transcript": "My Lord, the prosecution has proven both the act and the intention required for qatl-i-amd under section 302 of the Pakistan Penal Code, supported by direct eyewitness evidence under Article 71 of the Qanun-e-Shahadat Order. We pray the accused be convicted." }
+      ]
+    },
+    {
+      "id": "mixed",
+      "tier": "mixed",
+      "expectedRank": 2,
+      "turns": [
+        { "phase": "opening", "speaker": "student", "witnessName": null, "transcript": "My Lord, this is a murder case. The accused killed the victim and should be punished under section 302 of the Pakistan Penal Code. There is also a provision, I believe Article 505 of the Qanun-e-Shahadat Order, that supports our eyewitness." },
+        { "phase": "witness_examination", "speaker": "student", "witnessName": null, "transcript": "Ms. Arif, you saw him stab the victim, correct?" },
+        { "phase": "witness_examination", "speaker": "witness", "witnessName": "Sana Arif", "transcript": "Yes, I saw the accused stab Kamran Shah." },
+        { "phase": "closing", "speaker": "student", "witnessName": null, "transcript": "My Lord, the accused is clearly guilty under section 302. The eyewitness saw everything. We ask for a conviction." }
+      ]
+    },
+    {
+      "id": "weak",
+      "tier": "weak",
+      "expectedRank": 3,
+      "turns": [
+        { "phase": "opening", "speaker": "student", "witnessName": null, "transcript": "My Lord, my case is very strong. The accused is guilty of murder under section 899 of the Pakistan Penal Code, and under Article 512 of the Qanun-e-Shahadat Order the eyewitness must be believed. He did it, everyone knows it." },
+        { "phase": "witness_examination", "speaker": "student", "witnessName": null, "transcript": "So you agree the accused is a criminal, don't you?" },
+        { "phase": "witness_examination", "speaker": "witness", "witnessName": "Sana Arif", "transcript": "I only saw what happened that night." },
+        { "phase": "closing", "speaker": "student", "witnessName": null, "transcript": "My Lord, he is obviously guilty. Under section 899 the punishment is death. The defence has nothing. Please convict." }
+      ]
+    }
+  ]
+}

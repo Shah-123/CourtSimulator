@@ -1,0 +1,25 @@
+{
+  "description": "Golden set for statute retrieval. Each query is a legal question; `expected` lists the citation(s) that should be retrieved. A query is a hit if any expected citation appears in the top-k. Queries are labelled by whether they reward semantic (paraphrase) or lexical (exact-term) retrieval, so the two halves of the hybrid retriever can be judged separately.",
+  "cases": [
+    { "id": "hearsay", "mode": "semantic", "query": "the witness is just repeating what somebody else told him outside court, he did not see it himself", "expected": ["QSO 1984 Art. 71"] },
+    { "id": "leading_own_witness", "mode": "semantic", "query": "counsel is putting the answer he wants into his own witness's mouth during examination in chief", "expected": ["QSO 1984 Art. 137", "QSO 1984 Art. 136"] },
+    { "id": "leading_definition", "mode": "lexical", "query": "what is a leading question", "expected": ["QSO 1984 Art. 136"] },
+    { "id": "insulting_question", "mode": "semantic", "query": "the question is only meant to harass, humiliate and annoy the witness", "expected": ["QSO 1984 Art. 148"] },
+    { "id": "impeach_credit", "mode": "semantic", "query": "attacking the credibility and truthfulness of the opposing witness", "expected": ["QSO 1984 Art. 151"] },
+    { "id": "secondary_evidence", "mode": "semantic", "query": "producing a photocopy of a document when the original is not available", "expected": ["QSO 1984 Art. 76", "QSO 1984 Art. 74"] },
+    { "id": "dead_witness_statement", "mode": "semantic", "query": "using the statement of a person who has since died", "expected": ["QSO 1984 Art. 46"] },
+    { "id": "qatl_amd_definition", "mode": "lexical", "query": "definition of qatl-i-amd intentional murder", "expected": ["PPC 1860 s.300"] },
+    { "id": "murder_punishment", "mode": "semantic", "query": "what is the punishment for intentionally killing someone", "expected": ["PPC 1860 s.302"] },
+    { "id": "bounced_cheque", "mode": "semantic", "query": "he dishonestly issued a cheque that bounced for lack of funds", "expected": ["PPC 1860 s.489-F"] },
+    { "id": "cheating_property", "mode": "semantic", "query": "he deceived my client into handing over his property", "expected": ["PPC 1860 s.420", "PPC 1860 s.415"] },
+    { "id": "theft_punishment", "mode": "lexical", "query": "punishment for theft", "expected": ["PPC 1860 s.379"] },
+    { "id": "common_intention", "mode": "semantic", "query": "several accused acted together sharing the same criminal intention", "expected": ["PPC 1860 s.34"] },
+    { "id": "police_statement", "mode": "semantic", "query": "a statement recorded by the police during investigation cannot be signed by the witness", "expected": ["CrPC 1898 s.162"] },
+    { "id": "confession_magistrate", "mode": "semantic", "query": "recording the accused's confession before a magistrate", "expected": ["CrPC 1898 s.164"] },
+    { "id": "bail_nonbailable", "mode": "semantic", "query": "when can the court grant bail in a non-bailable offence", "expected": ["CrPC 1898 s.497"] },
+    { "id": "fair_trial", "mode": "semantic", "query": "every person is entitled to a fair trial and due process", "expected": ["Constitution 1973 Art. 10A"] },
+    { "id": "double_jeopardy", "mode": "semantic", "query": "a person cannot be tried and punished twice for the same offence, nor forced to incriminate himself", "expected": ["Constitution 1973 Art. 13"] },
+    { "id": "equality", "mode": "semantic", "query": "all citizens are equal before the law", "expected": ["Constitution 1973 Art. 25"] },
+    { "id": "writ_jurisdiction", "mode": "semantic", "query": "the writ jurisdiction of the High Court against a public authority", "expected": ["Constitution 1973 Art. 199"] }
+  ]
+}

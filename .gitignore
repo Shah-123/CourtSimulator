@@ -10,6 +10,21 @@ out-tsc
 
 # dependencies
 node_modules
+/.pnpm-store/
+
+# Python (ai-service)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+
+# local environment and secrets
+.env
+.env.local
+.env.*.local
 
 # IDEs and editors
 /.idea

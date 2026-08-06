@@ -1,3 +1,23 @@
+import path from "path";
+
+const dir = typeof import.meta !== "undefined" && import.meta.dirname ? import.meta.dirname : process.cwd();
+const possibleEnvPaths = [
+  path.resolve(dir, "../../../.env"),
+  path.resolve(dir, "../../.env"),
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env"),
+  ".env",
+];
+
+for (const envPath of possibleEnvPaths) {
+  try {
+    process.loadEnvFile(envPath);
+    if (process.env.DATABASE_URL) break;
+  } catch {}
+}
+
+
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";

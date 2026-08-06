@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: cases
+    description: Practice case library and AI case generation
+  - name: sessions
+    description: Courtroom practice sessions, voice turns, and verdicts
+  - name: dashboard
+    description: Aggregate practice statistics
 paths:
   /healthz:
     get:
@@ -24,6 +30,439 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /cases:
+    get:
+      operationId: listCases
+      tags: [cases]
+      summary: List practice cases
+      parameters:
+        - name: areaOfLaw
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AreaOfLaw"
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Difficulty"
+      responses:
+        "200":
+          description: List of cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Case"
+  /cases/generate:
+    post:
+      operationId: generateCase
+      tags: [cases]
+      summary: Generate a new AI-authored case scenario under Pakistani law
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaseGenerateInput"
+      responses:
+        "201":
+          description: Generated case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+  /cases/{id}:
+    get:
+      operationId: getCase
+      tags: [cases]
+      summary: Get a case by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Case detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List all practice sessions (history)
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionSummary"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Start a new courtroom practice session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionInput"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get full session detail with case, turns, and verdict
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/voice-turns:
+    post:
+      operationId: sendSessionVoiceTurn
+      tags: [sessions]
+      summary: Submit a spoken turn and receive a streaming AI voice response
+      description: |
+        Accepts base64-encoded audio of the student speaking (opening statement,
+        witness question, cross-examination response, or closing argument).
+
+        The utterance is transcribed and run through the multi-agent courtroom
+        graph, which may put several agents on the floor in sequence: opposing
+        counsel objecting on its own initiative, the judge ruling after reading
+        the governing provisions, then the witness answering if the question
+        survived.
+
+        Agents are streamed out of the graph as each one finishes, so counsel's
+        objection is spoken while the judge is still reasoning rather than after.
+
+        The response is an SSE stream. `user_transcript` carries the student's
+        own words; then, for each agent in turn, `speaker` announces who is
+        about to talk (carrying `grounded` provenance with each provision's
+        `verified` flag, and `fabricated` — any citation the audit could not
+        find in the corpus, checked before the line is spoken), `transcript`
+        carries their words, and `audio` carries their synthesized voice as
+        base64 PCM16 at 24 kHz. The stream ends with `{"done": true}`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceTurnInput"
+      responses:
+        "200":
+          description: SSE stream of transcript and audio chunks
+          content:
+            text/event-stream: {}
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/interject:
+    post:
+      operationId: sendSessionInterjection
+      tags: [sessions]
+      summary: Interrupt the court mid-answer with a spoken objection
+      description: |
+        Accepts base64-encoded audio of the student cutting across whoever is
+        speaking. The web app stops playback the moment it hears speech and
+        posts what was said.
+
+        The utterance is transcribed and classified: an objection is bound to a
+        ground whose provision exists in the corpus, and the same ReAct judge
+        that rules on the agents' objections rules on this one. An interruption
+        that was not an objection returns no ruling rather than being forced
+        into one, and an objection with no citable ground is refused with a
+        direction to state the ground.
+
+        The response is an SSE stream in the same shape as `voice-turns`:
+        `user_transcript`, then `speaker` / `transcript` / `audio` for the
+        bench, ending with `{"done": true}`. A `note` event carries the reason
+        when nothing was ruled on.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceTurnInput"
+      responses:
+        "200":
+          description: SSE stream of the bench's ruling
+          content:
+            text/event-stream: {}
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/call-witness:
+    post:
+      operationId: callWitness
+      tags: [sessions]
+      summary: Call a witness to the stand for examination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallWitnessInput"
+      responses:
+        "200":
+          description: Updated session detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid witness or session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/advance-phase:
+    post:
+      operationId: advanceSessionPhase
+      tags: [sessions]
+      summary: Move the session to the next courtroom phase
+      description: |
+        Advances the session forward through opening -> witness_examination ->
+        cross_examination -> closing -> verdict. Advancing to "verdict" triggers
+        the AI judge to score the session and mark it completed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvancePhaseInput"
+      responses:
+        "200":
+          description: Updated session detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid phase transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/objection:
+    post:
+      operationId: raiseObjection
+      tags: [sessions]
+      summary: Raise an evidentiary objection and receive the Bench's ruling
+      description: |
+        The student objects on one of the grounds returned by
+        /objection-grounds. The presiding judge rules on the objection using
+        the retrieved text of the provision behind that ground, so the ruling
+        cites law that has been confirmed to exist rather than recalled.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectionInput"
+      responses:
+        "200":
+          description: Updated session detail including the objection and ruling turns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Unknown ground or session already concluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/turn:
+    post:
+      operationId: sendCourtroomTurn
+      tags: [sessions]
+      summary: Run one student utterance through the multi-agent courtroom
+      description: |
+        Sends the student's utterance to the multi-agent reasoning service,
+        where independent judge, opposing-counsel and witness agents are
+        coordinated by a supervisor graph. One utterance can produce a sequence
+        of agent events: opposing counsel may object on its own, the judge reads
+        the governing statute via a tool and rules, and the witness answers only
+        if the question survives. Each event is persisted as a turn.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtroomTurnInput"
+      responses:
+        "200":
+          description: The ordered agent events and the updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtroomTurnResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Session already concluded or in an invalid state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{id}/verdict:
+    get:
+      operationId: getSessionVerdict
+      tags: [sessions]
+      summary: Get the verdict and scorecard for a completed session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verdict"
+        "404":
+          description: Verdict not yet available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /objection-grounds:
+    get:
+      operationId: listObjectionGrounds
+      tags: [sessions]
+      summary: Evidentiary grounds a student may object on
+      description: |
+        Each ground is bound to a provision in the statute corpus. A ground is
+        only returned if its backing provision exists, so the objection UI
+        cannot offer a ground it is unable to cite.
+      responses:
+        "200":
+          description: Available objection grounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ObjectionGround"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Aggregate practice statistics across all sessions
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +473,635 @@ components:
       required:
         - status
 
+    AreaOfLaw:
+      type: string
+      enum:
+        - Criminal
+        - Civil
+        - Constitutional
+        - Family
+        - Contract
+        - Property
+        - Corporate
+        - Tort
+    Difficulty:
+      type: string
+      enum:
+        - Beginner
+        - Intermediate
+        - Advanced
+    CaseSource:
+      type: string
+      enum:
+        - library
+        - generated
+    StudentSide:
+      type: string
+      enum:
+        - petitioner
+        - respondent
+    SessionPhase:
+      type: string
+      enum:
+        - opening
+        - witness_examination
+        - cross_examination
+        - closing
+        - verdict
+    SessionStatus:
+      type: string
+      enum:
+        - in_progress
+        - completed
+    TurnSpeaker:
+      type: string
+      enum:
+        - student
+        - judge
+        - opposing_counsel
+        - witness
+
+    Witness:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        statement:
+          type: string
+      required:
+        - name
+        - role
+        - statement
+
+    StatuteCitation:
+      type: object
+      description: A provision confirmed to exist in the statute corpus.
+      properties:
+        citation:
+          type: string
+          description: Canonical citation, e.g. "QSO 1984 Art. 71"
+        statuteCode:
+          type: string
+        heading:
+          type: string
+        verified:
+          type: boolean
+          description: |
+            True when the corpus text has been diffed against the official
+            source. False means the provision exists but its wording has not
+            yet been authenticated.
+      required:
+        - citation
+        - statuteCode
+        - heading
+        - verified
+
+    CitationCheckStatus:
+      type: string
+      enum:
+        - verified
+        - not_found
+        - uncovered
+    CitationCheck:
+      type: object
+      description: The result of checking one citation against the corpus.
+      properties:
+        raw:
+          type: string
+          description: The citation exactly as it was spoken or written.
+        citation:
+          type: ["string", "null"]
+        status:
+          $ref: "#/components/schemas/CitationCheckStatus"
+        heading:
+          type: ["string", "null"]
+      required:
+        - raw
+        - citation
+        - status
+        - heading
+
+    ObjectionGround:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        citation:
+          type: string
+        heading:
+          type: string
+        content:
+          type: string
+        verified:
+          type: boolean
+      required:
+        - id
+        - label
+        - description
+        - citation
+        - heading
+        - content
+        - verified
+    ObjectionInput:
+      type: object
+      properties:
+        groundId:
+          type: string
+          description: Identifier from /objection-grounds
+        statement:
+          type: string
+          description: The student's oral argument in support of the objection
+      required:
+        - groundId
+
+    CourtReasoningStep:
+      type: object
+      description: One Thought-Action-Observation step of the judge's ReAct loop.
+      properties:
+        thought:
+          type: string
+        action:
+          type: string
+        observation:
+          type: string
+      required:
+        - thought
+        - action
+        - observation
+    GroundedProvision:
+      type: object
+      description: A provision an agent relied on, carried for provenance.
+      properties:
+        citation:
+          type: string
+        heading:
+          type: string
+        verified:
+          type: boolean
+      required:
+        - citation
+        - heading
+        - verified
+    CourtEvent:
+      type: object
+      description: One AI utterance produced within a single student turn.
+      properties:
+        speaker:
+          $ref: "#/components/schemas/TurnSpeaker"
+        kind:
+          type: string
+          enum:
+            - objection
+            - ruling
+            - testimony
+            - bench
+            - argument
+        transcript:
+          type: string
+        ground:
+          type: ["string", "null"]
+        citation:
+          type: ["string", "null"]
+        ruling:
+          type: ["string", "null"]
+          description: '"sustained" or "overruled" for ruling events, otherwise null'
+        reasoning:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourtReasoningStep"
+        grounded:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroundedProvision"
+      required:
+        - speaker
+        - kind
+        - transcript
+        - ground
+        - citation
+        - ruling
+        - reasoning
+        - grounded
+    CourtObjection:
+      type: object
+      description: An objection opposing counsel chose to raise, bound to a provision.
+      properties:
+        groundId:
+          type: string
+        label:
+          type: string
+        citation:
+          type: string
+        heading:
+          type: string
+        content:
+          type: string
+        interjection:
+          type: string
+      required:
+        - groundId
+        - label
+        - citation
+        - heading
+        - content
+        - interjection
+    TurnCitationAudit:
+      type: object
+      description: Citation audit over everything the agents said in one turn.
+      properties:
+        total:
+          type: integer
+        verified:
+          type: integer
+        hallucinated:
+          type: integer
+        accuracy:
+          type: ["integer", "null"]
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitationCheck"
+      required:
+        - total
+        - verified
+        - hallucinated
+        - accuracy
+        - checks
+    CourtroomTurnInput:
+      type: object
+      properties:
+        utterance:
+          type: string
+          description: What the student says this turn.
+      required:
+        - utterance
+    CourtroomTurnResult:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/SessionDetail"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourtEvent"
+        objection:
+          anyOf:
+            - $ref: "#/components/schemas/CourtObjection"
+            - type: "null"
+        primarySpeaker:
+          type: ["string", "null"]
+        citationAudit:
+          $ref: "#/components/schemas/TurnCitationAudit"
+      required:
+        - session
+        - events
+        - objection
+        - primarySpeaker
+        - citationAudit
+
+    Case:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        areaOfLaw:
+          $ref: "#/components/schemas/AreaOfLaw"
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        summary:
+          type: string
+        applicableLaws:
+          type: string
+        petitionerName:
+          type: string
+        petitionerRole:
+          type: string
+        respondentName:
+          type: string
+        respondentRole:
+          type: string
+        witnesses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Witness"
+        citations:
+          type: array
+          description: |
+            Provisions this case is grounded in, resolved against the statute
+            corpus. Empty for library cases predating statute grounding.
+          items:
+            $ref: "#/components/schemas/StatuteCitation"
+        source:
+          $ref: "#/components/schemas/CaseSource"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - areaOfLaw
+        - difficulty
+        - summary
+        - applicableLaws
+        - petitionerName
+        - petitionerRole
+        - respondentName
+        - respondentRole
+        - witnesses
+        - citations
+        - source
+        - createdAt
+    CaseGenerateInput:
+      type: object
+      properties:
+        areaOfLaw:
+          $ref: "#/components/schemas/AreaOfLaw"
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+      required:
+        - areaOfLaw
+        - difficulty
+
+    Turn:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        phase:
+          $ref: "#/components/schemas/SessionPhase"
+        speaker:
+          $ref: "#/components/schemas/TurnSpeaker"
+        witnessName:
+          type: ["string", "null"]
+        transcript:
+          type: string
+        reasoning:
+          type: ["array", "null"]
+          description: >
+            The judge's ReAct trace for this turn, when it has one. Null for
+            every speaker but the bench, and for rulings made without the tool
+            loop — absence means there was no reasoning to show, not that it
+            was lost.
+          items:
+            $ref: "#/components/schemas/CourtReasoningStep"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sessionId
+        - phase
+        - speaker
+        - witnessName
+        - transcript
+        - reasoning
+        - createdAt
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        caseId:
+          type: integer
+        studentSide:
+          $ref: "#/components/schemas/StudentSide"
+        phase:
+          $ref: "#/components/schemas/SessionPhase"
+        status:
+          $ref: "#/components/schemas/SessionStatus"
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - caseId
+        - studentSide
+        - phase
+        - status
+        - createdAt
+        - completedAt
+    SessionInput:
+      type: object
+      properties:
+        caseId:
+          type: integer
+        studentSide:
+          $ref: "#/components/schemas/StudentSide"
+      required:
+        - caseId
+        - studentSide
+    SessionSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        caseId:
+          type: integer
+        caseTitle:
+          type: string
+        areaOfLaw:
+          $ref: "#/components/schemas/AreaOfLaw"
+        studentSide:
+          $ref: "#/components/schemas/StudentSide"
+        phase:
+          $ref: "#/components/schemas/SessionPhase"
+        status:
+          $ref: "#/components/schemas/SessionStatus"
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        overallScore:
+          type: ["integer", "null"]
+      required:
+        - id
+        - caseId
+        - caseTitle
+        - areaOfLaw
+        - studentSide
+        - phase
+        - status
+        - createdAt
+        - completedAt
+        - overallScore
+    SessionDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        caseId:
+          type: integer
+        studentSide:
+          $ref: "#/components/schemas/StudentSide"
+        phase:
+          $ref: "#/components/schemas/SessionPhase"
+        status:
+          $ref: "#/components/schemas/SessionStatus"
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        case:
+          $ref: "#/components/schemas/Case"
+        turns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Turn"
+        verdict:
+          oneOf:
+            - $ref: "#/components/schemas/Verdict"
+            - type: "null"
+      required:
+        - id
+        - caseId
+        - studentSide
+        - phase
+        - status
+        - createdAt
+        - completedAt
+        - case
+        - turns
+        - verdict
+
+    VoiceTurnInput:
+      type: object
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded audio data of the student's spoken turn
+      required:
+        - audio
+    CallWitnessInput:
+      type: object
+      properties:
+        witnessName:
+          type: string
+      required:
+        - witnessName
+    AdvancePhaseInput:
+      type: object
+      properties:
+        phase:
+          $ref: "#/components/schemas/SessionPhase"
+      required:
+        - phase
+
+    Verdict:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        winningSide:
+          $ref: "#/components/schemas/StudentSide"
+        overallScore:
+          type: integer
+        legalReasoningScore:
+          type: integer
+        persuasivenessScore:
+          type: integer
+        procedureScore:
+          type: integer
+        factualCommandScore:
+          type: integer
+        citationAccuracy:
+          type: ["integer", "null"]
+          description: |
+            Percentage of the student's statutory citations that resolve to a
+            real provision. Computed from the corpus rather than scored by the
+            model. Null when the student cited no statutes.
+        citationChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitationCheck"
+        judgeRemarks:
+          type: string
+        strengths:
+          type: string
+        areasForImprovement:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sessionId
+        - winningSide
+        - overallScore
+        - legalReasoningScore
+        - persuasivenessScore
+        - procedureScore
+        - factualCommandScore
+        - citationAccuracy
+        - citationChecks
+        - judgeRemarks
+        - strengths
+        - areasForImprovement
+        - createdAt
+
+    AreaOfLawCount:
+      type: object
+      properties:
+        areaOfLaw:
+          $ref: "#/components/schemas/AreaOfLaw"
+        count:
+          type: integer
+      required:
+        - areaOfLaw
+        - count
+    DashboardSummary:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+        completedSessions:
+          type: integer
+        averageOverallScore:
+          type: ["number", "null"]
+        strongestSkill:
+          type: ["string", "null"]
+        weakestSkill:
+          type: ["string", "null"]
+        sessionsByAreaOfLaw:
+          type: array
+          items:
+            $ref: "#/components/schemas/AreaOfLawCount"
+        recentSessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionSummary"
+      required:
+        - totalSessions
+        - completedSessions
+        - averageOverallScore
+        - strongestSkill
+        - weakestSkill
+        - sessionsByAreaOfLaw
+        - recentSessions
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

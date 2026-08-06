@@ -1,0 +1,403 @@
+{
+  "description": "Labelled objection scenarios for the multi-agent courtroom. Each is one student question put to a witness; the labels say whether opposing counsel should object, on which ground(s), and how the bench should rule. Built on the same State v. Bilal Ahmed fixture as judge_transcripts.json.",
+  "labelProvenance": "Labels were derived from the evidentiary rules in the corpus (QSO 1984 Arts. 71, 76, 133, 136-138, 148, 151; CrPC 1898 s.162) by an engineer, not a lawyer. The QSO provision text these rules rest on has since been verified word-for-word against the official pakistancode.gov.pk PDF (20/20, qso-1984.json carries verified:true); the PPC and CrPC files do not yet. Treat these labels as a working ground truth to be reviewed by a law student or practitioner before any number computed from them is presented as authoritative.",
+  "conventions": {
+    "expectedGrounds": "Acceptable grounds, not a single answer. More than one ground is often defensible for the same question (a foundationless accusation can be both insulting and irrelevant), so scoring credits any listed ground.",
+    "expectedRuling": "How the bench should rule IF an objection is raised. It can be set to 'overruled' on a scenario where expectObjection is false — meaning counsel ought to stay silent, but a bench that hears the objection should reject it."
+  },
+  "case": {
+    "title": "State v. Bilal Ahmed",
+    "areaOfLaw": "Criminal",
+    "summary": "Bilal Ahmed is charged with the qatl-i-amd of Kamran Shah, stabbed outside a market in Lahore. The prosecution relies on a single eyewitness, Sana Arif, and a recovered knife. The defence offers an alibi witness, Rashid Mehmood.",
+    "applicableLaws": "Pakistan Penal Code 1860; Qanun-e-Shahadat Order 1984; Code of Criminal Procedure 1898",
+    "studentSide": "petitioner",
+    "petitionerName": "The State",
+    "petitionerRole": "Prosecution",
+    "respondentName": "Bilal Ahmed",
+    "respondentRole": "Accused",
+    "witnesses": [
+      {
+        "name": "Sana Arif",
+        "role": "Eyewitness",
+        "statement": "I was buying vegetables outside the market at about 9pm when I saw two men arguing. One drew a knife and stabbed the other in the chest, then ran towards the bazaar."
+      },
+      {
+        "name": "Constable Imran",
+        "role": "Investigating officer",
+        "statement": "I reached the scene at around 9:20pm, secured the area, and recovered a bloodstained knife about two metres from the deceased."
+      },
+      {
+        "name": "Rashid Mehmood",
+        "role": "Defence alibi witness",
+        "statement": "Bilal was at my house in Model Town from 8pm until nearly midnight that night. He never left."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "lead_chief_1",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Ms. Arif, you saw the accused stab the victim with your own eyes, didn't you?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Leading question to one's own witness on the central contested fact, in examination-in-chief."
+    },
+    {
+      "id": "lead_chief_2",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "And after he stabbed Kamran, he ran off towards the bazaar, didn't he?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Suggests the answer on a contested fact in chief."
+    },
+    {
+      "id": "lead_chief_3",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "The man you saw holding the knife was wearing a blue shirt, correct?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Supplies the identifying detail the witness is supposed to give."
+    },
+    {
+      "id": "lead_chief_4",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "You have absolutely no doubt that the man you saw was Bilal Ahmed, is that not so?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Leading on identification, the fact most in issue."
+    },
+    {
+      "id": "lead_chief_5",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "Constable, you recovered the bloodstained knife right next to the body, didn't you?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Leading the investigating officer on the recovery, in chief."
+    },
+    {
+      "id": "lead_chief_introductory_1",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Ms. Arif, you live in Lahore, do you not?",
+      "expectObjection": false,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "overruled",
+      "rationale": "Technically leading but introductory and undisputed; Art. 137 lets the court permit such questions, so counsel should not rise and the bench should not sustain."
+    },
+    {
+      "id": "lead_chief_introductory_2",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "Constable, you are posted at the police station with jurisdiction over that market, correct?",
+      "expectObjection": false,
+      "expectedGrounds": [
+        "leading_question"
+      ],
+      "expectedRuling": "overruled",
+      "rationale": "Introductory background, not a contested matter."
+    },
+    {
+      "id": "proper_chief_1",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Ms. Arif, what did you see outside the market that evening?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Open, non-leading question in chief. Control case for over-objection."
+    },
+    {
+      "id": "proper_chief_2",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Where exactly were you standing when this happened?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Proper open question."
+    },
+    {
+      "id": "proper_chief_3",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Please describe the man you saw with the knife.",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Invites description without suggesting it."
+    },
+    {
+      "id": "proper_chief_4",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "What did you do after the man ran away?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Proper sequential question."
+    },
+    {
+      "id": "proper_chief_5",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "Constable, what did you find when you reached the scene?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Proper open question to the investigating officer."
+    },
+    {
+      "id": "proper_chief_6",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "How far from the deceased was the knife lying?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Specific but non-suggestive."
+    },
+    {
+      "id": "proper_chief_7",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "At what time did you arrive at the market?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": null,
+      "rationale": "Neutral factual question."
+    },
+    {
+      "id": "lead_cross_1",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "Mr. Mehmood, you have known the accused for fifteen years, haven't you?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": "overruled",
+      "rationale": "Leading, but Art. 138 permits leading questions in cross-examination."
+    },
+    {
+      "id": "lead_cross_2",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "You were not actually present outside the market that evening, were you?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": "overruled",
+      "rationale": "Classic permitted leading in cross."
+    },
+    {
+      "id": "lead_cross_3",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "You only heard about this incident the following morning, correct?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": "overruled",
+      "rationale": "Permitted leading in cross."
+    },
+    {
+      "id": "lead_cross_4",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "I put it to you that your account of the accused being at your house all evening is simply untrue.",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": "overruled",
+      "rationale": "Putting one's case to the witness is proper cross-examination, not an insult."
+    },
+    {
+      "id": "lead_cross_5",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "You would not want to see an old friend convicted of murder, would you?",
+      "expectObjection": false,
+      "expectedGrounds": [],
+      "expectedRuling": "overruled",
+      "rationale": "Legitimate credibility question in cross; Art. 151 permits testing veracity."
+    },
+    {
+      "id": "insulting_1",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "Isn't it a fact that you are a habitual liar who would perjure himself for a few thousand rupees?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "insulting_question",
+        "improper_impeachment"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Needlessly offensive in form and an unfounded attack on character."
+    },
+    {
+      "id": "insulting_2",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "Are you as stupid as you appear, or are you deliberately wasting this court's time?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "insulting_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Purely abusive; Art. 148 requires the court to forbid it."
+    },
+    {
+      "id": "insulting_3",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "Isn't it well known in your locality that you are a man of thoroughly bad character?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "insulting_question",
+        "improper_impeachment",
+        "irrelevant"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Scandalous general character attack without foundation."
+    },
+    {
+      "id": "hearsay_1",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Ms. Arif, what did your neighbour tell you about who had committed this murder?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "hearsay"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Solicits what another person said, offered for its truth."
+    },
+    {
+      "id": "hearsay_2",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "Constable, what did the shopkeeper tell you he had seen that night?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "hearsay"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Second-hand account through the investigating officer."
+    },
+    {
+      "id": "hearsay_3",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "What were people in the market saying afterwards about the accused being a violent man?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "hearsay",
+        "irrelevant"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Rumour offered for its truth, and general bad character is not in issue."
+    },
+    {
+      "id": "irrelevant_1",
+      "phase": "witness_examination",
+      "activeWitness": "Sana Arif",
+      "utterance": "Ms. Arif, which political party do you and your family support?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "irrelevant"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "No bearing on any fact in issue."
+    },
+    {
+      "id": "irrelevant_2",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "How much rent do you pay for your house in Model Town every month?",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "irrelevant"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Strays from the facts in issue."
+    },
+    {
+      "id": "police_statement_1",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "Constable, kindly read out to the court the statement Ms. Arif gave you under section 161 so the court can see she has been consistent throughout.",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "police_statement"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Using a s.161 statement to corroborate is a use s.162 CrPC forbids."
+    },
+    {
+      "id": "police_statement_2",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "Your statement to the police says the accused arrived at 8pm, and I tender that police statement as proof that he did.",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "police_statement"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Tendering a police statement as substantive proof of its contents."
+    },
+    {
+      "id": "secondary_evidence_1",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "I am producing a photocopy of the recovery memo — the original is lying somewhere at the police station — kindly confirm its contents.",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "secondary_evidence"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Secondary evidence tendered without establishing an exception."
+    },
+    {
+      "id": "secondary_evidence_2",
+      "phase": "witness_examination",
+      "activeWitness": "Constable Imran",
+      "utterance": "This is a photocopy of the post-mortem report; confirm from it that the wound was to the chest, we need not trouble with the original.",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "secondary_evidence"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Expressly dispensing with the original without foundation."
+    },
+    {
+      "id": "improper_impeachment_1",
+      "phase": "cross_examination",
+      "activeWitness": "Rashid Mehmood",
+      "utterance": "I put it to you that you were convicted of theft some twenty years ago, though I have no record of it to show this court.",
+      "expectObjection": true,
+      "expectedGrounds": [
+        "improper_impeachment",
+        "insulting_question"
+      ],
+      "expectedRuling": "sustained",
+      "rationale": "Attacking credit by an unproved allegation, outside the manner the law permits."
+    }
+  ]
+}
