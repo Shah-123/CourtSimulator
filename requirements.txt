@@ -1,0 +1,37 @@
+# ==============================================================================
+# Adalat AI - Python Dependencies
+# ==============================================================================
+
+# Core AI Service Dependencies (artifacts/ai-service)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.9
+pydantic-settings>=2.5
+asyncpg>=0.30
+openai>=1.50
+numpy>=1.26
+rank-bm25>=0.2.2
+langgraph>=0.2
+langchain-openai>=0.2
+sentence-transformers>=3.0
+
+# AI Service Dev & Testing Dependencies
+pytest>=8.0
+pytest-asyncio>=0.24
+ruff>=0.6
+httpx>=0.27
+
+# AI Evaluation Dependencies (Optional)
+# Note: 'ragas' depends on 'scikit-network'. On Python 3.14 or hosts without pre-built wheels,
+# installing ragas requires Microsoft Visual C++ 14.0+ Build Tools.
+# Uncomment below if you have C++ Build Tools installed or are running evaluation benchmarks:
+# ragas>=0.2
+# datasets>=3.0
+
+# Utility & Verification Scripts (make_guide.py, verify-statutes.py)
+reportlab
+pymupdf
+pypdf
+
+# Install local ai-service package in editable mode
+-e ./artifacts/ai-service
