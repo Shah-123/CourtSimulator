@@ -17,7 +17,7 @@ from app.rag.index import get_index
 # Aliases students and models actually use, lowercased. Order matters: longer,
 # more specific aliases must be tried first so "code of criminal procedure" is
 # not partially matched by a shorter entry.
-INSTRUMENT_ALIASES: list[tuple[str, list[str]]] = [
+CORPUS_INSTRUMENT_ALIASES: list[tuple[str, list[str]]] = [
     (
         "QSO_1984",
         [
@@ -42,11 +42,69 @@ INSTRUMENT_ALIASES: list[tuple[str, list[str]]] = [
     ("CONST_1973", ["constitution of pakistan", "constitution"]),
 ]
 
+# Instruments the corpus does not hold, listed for exactly the reason the ones
+# above are.
+#
+# verify_citations reports a code it cannot find in the index as UNCOVERED —
+# "instrument not in the verified corpus; treat as unconfirmed". An instrument
+# with *no alias* gets no such report, because extract_citations never emits a
+# tuple for it: the citation is not judged unconfirmed, it is not seen. That
+# silence is what let three seeded library cases ship citing CPC 1908, the
+# Specific Relief Act 1877 and the West Pakistan Land Revenue Act 1967 while
+# auditing at 100%, and it is what a student still gets today if they argue
+# from an Act nobody thought to name here.
+#
+# Adding an instrument here does not touch the fabrication metrics: only
+# NOT_FOUND counts towards `hallucinated`, and UNCOVERED is a separate status.
+# What changes is `accuracy`, which now has a denominator including citations
+# that were previously discarded — which is the honest denominator.
+#
+# Each code is the `statuteCode` that instrument's corpus file must use when it
+# is ingested. At that moment the alias starts resolving to real provisions and
+# nothing here needs to change.
+UNCOVERED_INSTRUMENT_ALIASES: list[tuple[str, list[str]]] = [
+    # Civil and commercial
+    ("CPC_1908", ["code of civil procedure", "civil procedure code", "c.p.c", "cpc"]),
+    ("SPECIFIC_RELIEF_1877", ["specific relief act", "specific relief"]),
+    ("CONTRACT_1872", ["contract act"]),
+    ("LIMITATION_1908", ["limitation act"]),
+    ("COMPANIES_2017", ["companies act", "companies ordinance"]),
+    # Property
+    ("TPA_1882", ["transfer of property act", "transfer of property"]),
+    ("REGISTRATION_1908", ["registration act"]),
+    ("LAND_REVENUE_1967", ["land revenue act"]),
+    # Family
+    (
+        "MFLO_1961",
+        ["muslim family laws ordinance", "muslim family laws", "mflo"],
+    ),
+    ("FAMILY_COURTS_1964", ["family courts act"]),
+    ("DMMA_1939", ["dissolution of muslim marriages act"]),
+    ("GUARDIANS_WARDS_1890", ["guardians and wards act"]),
+    # Identity, citizenship and immigration. Added after a real Article 199
+    # petition turned entirely on this group, none of which was recognised.
+    (
+        "NADRA_2000",
+        [
+            "national database and registration authority ordinance",
+            "nadra ordinance",
+            "nadra",
+        ],
+    ),
+    ("POC_RULES_2002", ["pakistan origin card rules", "poc rules"]),
+    ("CITIZENSHIP_1951", ["pakistan citizenship act", "citizenship act"]),
+    # Special criminal
+    ("ATA_1997", ["anti-terrorism act", "anti terrorism act"]),
+    ("CNSA_1997", ["control of narcotic substances act"]),
+]
+
+_ALL_INSTRUMENT_ALIASES = CORPUS_INSTRUMENT_ALIASES + UNCOVERED_INSTRUMENT_ALIASES
+
 _ALIAS_TO_CODE = {
-    alias: code for code, aliases in INSTRUMENT_ALIASES for alias in aliases
+    alias: code for code, aliases in _ALL_INSTRUMENT_ALIASES for alias in aliases
 }
 _ALIAS_PATTERN = "|".join(
-    re.escape(alias) for _, aliases in INSTRUMENT_ALIASES for alias in aliases
+    re.escape(alias) for _, aliases in _ALL_INSTRUMENT_ALIASES for alias in aliases
 )
 
 # Matches "302", "489-F", "10A", "265-K".
