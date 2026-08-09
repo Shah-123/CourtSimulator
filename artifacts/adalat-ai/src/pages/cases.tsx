@@ -62,47 +62,127 @@ function DifficultyMark({ difficulty }: { difficulty: string }) {
   );
 }
 
+/**
+ * A case name, set the way a law report sets it.
+ *
+ * The "v." between two parties is the most recognisable typographic form in
+ * law, and rendering it as ordinary text throws that away. Roman for the
+ * parties, small italic for the versus — a lawyer reads the shape before the
+ * words. Titles that carry no "v." (a writ petition, a reference) are left
+ * exactly as they are rather than forced into a form they do not have.
+ */
+function CaseName({ title }: { title: string }) {
+  const parts = title.split(/\s+v\.?\s+/);
+  if (parts.length !== 2) return <>{title}</>;
+
+  return (
+    <>
+      {parts[0]}{" "}
+      <span className="font-normal italic text-muted-foreground">v.</span>{" "}
+      {parts[1]}
+    </>
+  );
+}
+
+// A cause list counts its matters in words. Digits are for citations and
+// paragraph numbers, which is a distinction the apparatus already makes
+// elsewhere in the record.
+const COUNTS = [
+  "No", "One", "Two", "Three", "Four", "Five",
+  "Six", "Seven", "Eight", "Nine", "Ten",
+];
+
+/**
+ * The masthead of the day's cause list.
+ *
+ * A cause list is the sheet posted outside a Pakistani courtroom naming the
+ * matters to be called that day, and it is precisely what this page is — so it
+ * is set as one rather than as a dashboard header. The date is the sitting, the
+ * count is the list, and the double rule beneath is the one the printed sheet
+ * carries between its heading and its first entry.
+ */
+function CauseListMasthead({ count }: { count: number }) {
+  const sitting = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const listed = count <= 10 ? COUNTS[count] : String(count);
+
+  return (
+    <header className="border-b-[3px] border-double border-rule pb-7">
+      {/* The action sits on the heading line, not beside the standfirst. Left
+          to align with the paragraph it ended up floating in dead space beside
+          a three-line block, which read as a stray control rather than the
+          list's one affordance. */}
+      <div className="flex items-start justify-between gap-4">
+        <p className="apparatus flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-muted-foreground">
+          <span>Cause list</span>
+          {/* Dropped on narrow screens, where the line breaks after it and
+              leaves the separator dangling at the end of the first row. */}
+          <span aria-hidden="true" className="hidden sm:inline">
+            ·
+          </span>
+          <span>{sitting}</span>
+        </p>
+        <GenerateCaseDialog />
+      </div>
+
+      {/* Set lighter and larger than a UI heading would be: Newsreader's
+          optical sizing does the work at display size, and weight added on top
+          of it reads as shouting rather than as a masthead. */}
+      <h1 className="mt-4 max-w-3xl text-balance font-serif text-[2.5rem] font-normal leading-[0.98] tracking-[-0.022em] sm:text-5xl lg:text-[3.25rem]">
+        Matters listed before the bench
+      </h1>
+
+      <p className="mt-5 max-w-xl font-serif text-[1.0625rem] leading-relaxed text-foreground/80">
+        {listed} {count === 1 ? "matter is" : "matters are"} on the file. Choose
+        one and a side; you will argue it aloud against opposing counsel who
+        objects, before a bench that rules and marks you on the record.
+      </p>
+    </header>
+  );
+}
+
 export default function CasesPage() {
   const { data: cases, isLoading, isError, error, refetch } = useListCases();
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
-        <div className="max-w-2xl">
-          <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-            Case library
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Choose a matter and a side. You will argue it aloud against opposing
-            counsel, before a bench that objects, rules, and marks you on the
-            record.
-          </p>
-        </div>
-        <GenerateCaseDialog />
-      </div>
+      <CauseListMasthead
+        count={Array.isArray(cases) ? cases.length : 0}
+      />
 
       {isError ? (
         <ApiErrorState error={error} onRetry={() => void refetch()} />
       ) : isLoading ? (
-        <div className="grid animate-pulse grid-cols-1 gap-px border border-rule bg-rule md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid animate-pulse grid-cols-1 border-l border-t border-rule md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-56 bg-background" />
+            <div key={i} className="h-56 border-b border-r border-rule bg-card" />
           ))}
         </div>
       ) : !Array.isArray(cases) || cases.length === 0 ? (
-        <div className="border-y border-rule py-20 text-center">
-          <p className="font-serif text-xl">No cases on file.</p>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-            Draft one and it is added to the library for you to argue.
+        /* The button lives in the masthead, so the empty state points at it
+           rather than repeating it — an empty screen should say what to do
+           next, not offer the same control twice. */
+        <div className="border-b border-rule py-24 text-center">
+          <p className="font-serif text-2xl font-normal">The list is empty.</p>
+          <p className="mx-auto mt-3 max-w-sm font-serif leading-relaxed text-muted-foreground">
+            Draft a case and it is entered on the file, ready to be called.
           </p>
-          <div className="mt-6 flex justify-center">
-            <GenerateCaseDialog />
-          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-px border border-rule bg-rule md:grid-cols-2 xl:grid-cols-3">
+        /* Rules are drawn on the cells, not as a coloured gap behind them. The
+           gap technique paints the container, so a row that does not divide
+           evenly by the column count left a grey panel sitting where a fourth
+           matter would be — an empty cell reading as a broken one. */
+        <div className="grid grid-cols-1 border-l border-t border-rule md:grid-cols-2 xl:grid-cols-3">
           {cases.map((c) => (
-            <article key={c.id} className="flex flex-col bg-card p-5">
+            <article
+              key={c.id}
+              className="group flex flex-col border-b border-r border-rule bg-card p-5 transition-colors duration-200 hover:bg-accent/25"
+            >
               <div className="flex items-start justify-between gap-3">
                 <span className="apparatus text-muted-foreground">
                   {c.areaOfLaw}
@@ -110,8 +190,8 @@ export default function CasesPage() {
                 <DifficultyMark difficulty={c.difficulty} />
               </div>
 
-              <h2 className="mt-3 font-serif text-xl font-medium leading-snug">
-                {c.title}
+              <h2 className="mt-3 font-serif text-xl font-medium leading-snug tracking-[-0.012em]">
+                <CaseName title={c.title} />
               </h2>
               {/* Clamped: three full citations in monospace outweigh the case
                   name they belong to. The brief carries them in full. */}

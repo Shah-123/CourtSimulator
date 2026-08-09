@@ -72,7 +72,11 @@ function SignedInAs() {
 
   return (
     <div className="flex items-center gap-2 border-l border-rule pl-2">
-      <span className="apparatus hidden text-muted-foreground sm:inline">
+      {/* Held back to the widest breakpoint and kept on one line: at tablet
+          widths the name competed with the nav for the last of the row and
+          both wrapped, splitting "Ayesha Khan" across two lines in the
+          masthead. The sign-out control carries the meaning without it. */}
+      <span className="apparatus hidden whitespace-nowrap text-muted-foreground lg:inline">
         {user.displayName}
       </span>
       <button
@@ -108,7 +112,8 @@ export function Layout({ children }: { children: ReactNode }) {
               عدالت
             </span>
             <span className="flex flex-col leading-none">
-              <span className="font-serif text-xl font-semibold tracking-tight">
+              {/* The name of the court is not a thing that wraps. */}
+              <span className="whitespace-nowrap font-serif text-xl font-semibold tracking-tight">
                 Adalat AI
               </span>
               <span className="apparatus mt-1 text-muted-foreground">
