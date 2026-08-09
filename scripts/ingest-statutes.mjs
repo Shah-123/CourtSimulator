@@ -76,7 +76,29 @@ function validateCorpusFile(data, fileName) {
         );
       }
     }
+    // Rejected rather than coerced: `"verified": "false"` is truthy, and a
+    // string that quietly marks an undiffed provision as authoritative law is
+    // the one failure this whole flag exists to prevent.
+    if (section.verified !== undefined && typeof section.verified !== "boolean") {
+      throw new Error(
+        `${fileName}: sections[${i}].verified must be a boolean, got ` +
+          `${JSON.stringify(section.verified)}`,
+      );
+    }
   });
+}
+
+/**
+ * Whether one provision counts as verified against the official source.
+ *
+ * A provision declares its own state; the instrument-level flag is only the
+ * default for files that predate per-provision marking. Verification is a
+ * per-provision fact — the diff either matched or it did not — and recording it
+ * per instrument meant two provisions that still differed dragged the thirteen
+ * already diffed clean in the same file down to ⚠ with them.
+ */
+function isVerified(file, section) {
+  return section.verified ?? Boolean(file.verified);
 }
 
 function buildCitation(file, sectionNumber) {
@@ -149,16 +171,20 @@ async function main() {
 
   const pending = [];
   let totalSections = 0;
-  let unverifiedInstruments = 0;
+  let unverifiedProvisions = 0;
 
   for (const fileName of files) {
     const raw = await readFile(path.join(CORPUS_DIR, fileName), "utf8");
     const file = JSON.parse(raw);
     validateCorpusFile(file, fileName);
 
-    if (!file.verified) unverifiedInstruments++;
+    let verifiedInFile = 0;
 
     for (const section of file.sections) {
+      const verified = isVerified(file, section);
+      if (verified) verifiedInFile++;
+      else unverifiedProvisions++;
+
       const citation = buildCitation(file, section.sectionNumber);
       const embeddingInput = buildEmbeddingInput(
         file.statuteTitle,
@@ -194,7 +220,7 @@ async function main() {
           section.chapter ?? null,
           section.content,
           file.sourceUrl ?? null,
-          Boolean(file.verified),
+          verified,
         ],
       );
 
@@ -236,7 +262,9 @@ async function main() {
     );
 
     console.log(
-      `  ${file.statuteCode.padEnd(12)} ${String(file.sections.length).padStart(3)} provisions${file.verified ? "" : "  (unverified source)"}${pruned > 0 ? `  — pruned ${pruned} stale` : ""}`,
+      `  ${file.statuteCode.padEnd(12)} ${String(file.sections.length).padStart(3)} provisions` +
+        `  ${verifiedInFile}/${file.sections.length} verified` +
+        `${pruned > 0 ? `  — pruned ${pruned} stale` : ""}`,
     );
   }
 
@@ -268,11 +296,14 @@ async function main() {
     );
   }
 
+  // Counted, not `bool_and`: an instrument is no longer verified or not, it is
+  // verified in part. Collapsing 13 diffed provisions and 2 outstanding ones to
+  // a single false was exactly the reporting this change exists to end.
   const { rows: summary } = await client.query(`
     SELECT statute_code,
            count(*)::int AS sections,
            count(embedding)::int AS embedded,
-           bool_and(verified) AS verified
+           (count(*) FILTER (WHERE verified))::int AS verified
     FROM statute_sections
     GROUP BY statute_code
     ORDER BY statute_code
@@ -281,17 +312,21 @@ async function main() {
   console.log("\nCorpus state:");
   for (const row of summary) {
     console.log(
-      `  ${row.statute_code.padEnd(12)} ${row.embedded}/${row.sections} embedded${row.verified ? "" : "  ⚠ unverified"}`,
+      `  ${row.statute_code.padEnd(12)} ${row.embedded}/${row.sections} embedded` +
+        `  ${row.verified}/${row.sections} verified` +
+        `${row.verified < row.sections ? "  ⚠" : ""}`,
     );
   }
 
-  if (unverifiedInstruments > 0) {
+  if (unverifiedProvisions > 0) {
     console.log(
-      `\n⚠  ${unverifiedInstruments} instrument(s) are marked unverified.\n` +
+      `\n⚠  ${unverifiedProvisions} of ${totalSections} provisions are unverified.\n` +
         `   Their text has not been diffed against the official source, so the\n` +
         `   app will label anything retrieved from them as unverified rather\n` +
         `   than presenting it as authoritative law. Verify against\n` +
-        `   pakistancode.gov.pk, then set "verified": true in the corpus file.`,
+        `   pakistancode.gov.pk with \`pnpm run statutes:verify\`, then set\n` +
+        `   "verified": true on that provision in the corpus file — or on the\n` +
+        `   instrument, once every provision in it has been diffed.`,
     );
   }
 }
