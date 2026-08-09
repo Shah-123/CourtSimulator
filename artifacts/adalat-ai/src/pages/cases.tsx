@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AreaOfLaw,
+  DraftableAreaOfLaw,
   Difficulty,
   StudentSide,
   getListCasesQueryKey,
@@ -240,7 +240,9 @@ export default function CasesPage() {
 
 function GenerateCaseDialog() {
   const [isOpen, setIsOpen] = useState(false);
-  const [area, setArea] = useState<AreaOfLaw>(AreaOfLaw.Criminal);
+  const [area, setArea] = useState<DraftableAreaOfLaw>(
+    DraftableAreaOfLaw.Criminal,
+  );
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Beginner);
 
   return (
@@ -265,18 +267,27 @@ function GenerateCaseDialog() {
             <label htmlFor="area" className="apparatus text-muted-foreground">
               Area of law
             </label>
-            <Select value={area} onValueChange={(v) => setArea(v as AreaOfLaw)}>
+            <Select
+              value={area}
+              onValueChange={(v) => setArea(v as DraftableAreaOfLaw)}
+            >
               <SelectTrigger id="area">
                 <SelectValue placeholder="Choose an area" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(AreaOfLaw).map((a) => (
+                {Object.values(DraftableAreaOfLaw).map((a) => (
                   <SelectItem key={a} value={a}>
                     {a}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {/* Said out loud rather than left for a student to discover. The
+                other six areas generated cases whose citations came out of the
+                Penal Code, which reads as coverage until someone checks it. */}
+            <p className="apparatus text-muted-foreground">
+              Limited to the areas the statute corpus covers.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -321,7 +332,7 @@ function GenerateCaseButton({
   difficulty,
   onSuccess,
 }: {
-  area: AreaOfLaw;
+  area: DraftableAreaOfLaw;
   difficulty: Difficulty;
   onSuccess: () => void;
 }) {

@@ -42,6 +42,13 @@ export interface LogInInput {
   password: string;
 }
 
+/**
+ * The area a stored case belongs to. Deliberately wider than
+ * DraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing
+ * this to what the corpus can ground would make the case list fail to
+ * parse its own seed data. This is the read side — what a case may *be*,
+ * not what a student may ask for.
+ */
 export type AreaOfLaw = typeof AreaOfLaw[keyof typeof AreaOfLaw];
 
 
@@ -54,6 +61,30 @@ export const AreaOfLaw = {
   Property: 'Property',
   Corporate: 'Corporate',
   Tort: 'Tort',
+} as const;
+
+/**
+ * The areas a student may ask the model to draft a new case in.
+ *
+ * Restricted to the two the statute corpus actually backs. The corpus
+ * holds four instruments — PPC 1860, CrPC 1898, QSO 1984 and the
+ * Constitution — so Criminal and Constitutional retrieve governing law,
+ * while Contract and Corporate would be answered out of the Penal Code
+ * (s.415 cheating, s.489-F, s.405 criminal breach of trust) and Civil,
+ * Family, Property and Tort have no statute filter at all and sweep a
+ * corpus that is 45/53 criminal and evidence provisions.
+ *
+ * Generation still worked for those six; it produced cases whose
+ * citations passed the audit only because the audit's ground truth is the
+ * corpus. Widen this enum when the governing instrument for an area is
+ * ingested and verified, not before.
+ */
+export type DraftableAreaOfLaw = typeof DraftableAreaOfLaw[keyof typeof DraftableAreaOfLaw];
+
+
+export const DraftableAreaOfLaw = {
+  Criminal: 'Criminal',
+  Constitutional: 'Constitutional',
 } as const;
 
 export type Difficulty = typeof Difficulty[keyof typeof Difficulty];
@@ -333,7 +364,7 @@ export interface CourtroomTurnResult {
 }
 
 export interface CaseGenerateInput {
-  areaOfLaw: AreaOfLaw;
+  areaOfLaw: DraftableAreaOfLaw;
   difficulty: Difficulty;
 }
 

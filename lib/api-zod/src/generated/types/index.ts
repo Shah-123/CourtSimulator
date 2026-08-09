@@ -24,6 +24,7 @@ export * from './courtroomTurnInput';
 export * from './courtroomTurnResult';
 export * from './dashboardSummary';
 export * from './difficulty';
+export * from './draftableAreaOfLaw';
 export * from './errorResponse';
 export * from './groundedProvision';
 export * from './healthStatus';
