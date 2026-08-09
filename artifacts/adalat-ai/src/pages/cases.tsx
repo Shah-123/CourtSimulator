@@ -33,6 +33,8 @@ import { ApiErrorState, getErrorMessage } from "@/components/api-state";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+const DRAFTABLE_AREAS = Object.values(DraftableAreaOfLaw);
+
 const DIFFICULTY_STEPS: Record<string, number> = {
   [Difficulty.Beginner]: 1,
   [Difficulty.Intermediate]: 2,
@@ -267,26 +269,34 @@ function GenerateCaseDialog() {
             <label htmlFor="area" className="apparatus text-muted-foreground">
               Area of law
             </label>
-            <Select
-              value={area}
-              onValueChange={(v) => setArea(v as DraftableAreaOfLaw)}
-            >
-              <SelectTrigger id="area">
-                <SelectValue placeholder="Choose an area" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(DraftableAreaOfLaw).map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Said out loud rather than left for a student to discover. The
-                other six areas generated cases whose citations came out of the
-                Penal Code, which reads as coverage until someone checks it. */}
+            {/* One draftable area today, so the control reads as a statement
+                rather than a choice — a select holding a single option asks a
+                question with one answer. Driven off the enum, so restoring a
+                second area brings the dropdown back with it. */}
+            {DRAFTABLE_AREAS.length > 1 ? (
+              <Select
+                value={area}
+                onValueChange={(v) => setArea(v as DraftableAreaOfLaw)}
+              >
+                <SelectTrigger id="area">
+                  <SelectValue placeholder="Choose an area" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DRAFTABLE_AREAS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p id="area" className="font-serif text-lg">
+                {area}
+              </p>
+            )}
+            {/* Said out loud rather than left for a student to discover. */}
             <p className="apparatus text-muted-foreground">
-              Limited to the areas the statute corpus covers.
+              The proceeding the corpus and the objection grounds both support.
             </p>
           </div>
 

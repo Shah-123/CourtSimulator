@@ -66,25 +66,35 @@ export const AreaOfLaw = {
 /**
  * The areas a student may ask the model to draft a new case in.
  *
- * Restricted to the two the statute corpus actually backs. The corpus
- * holds four instruments — PPC 1860, CrPC 1898, QSO 1984 and the
- * Constitution — so Criminal and Constitutional retrieve governing law,
- * while Contract and Corporate would be answered out of the Penal Code
- * (s.415 cheating, s.489-F, s.405 criminal breach of trust) and Civil,
- * Family, Property and Tort have no statute filter at all and sweep a
- * corpus that is 45/53 criminal and evidence provisions.
+ * Criminal only, and the constraint is the courtroom, not just the
+ * corpus. A drafted case is argued through opening → witness examination
+ * → cross-examination → closing, and every objection ground the
+ * simulator can raise is an examination ground: hearsay, leading
+ * question, secondary evidence, impeachment, s.162 CrPC. A criminal
+ * trial is the one proceeding where all of that applies at once.
  *
- * Generation still worked for those six; it produced cases whose
- * citations passed the audit only because the audit's ground truth is the
- * corpus. Widen this enum when the governing instrument for an area is
- * ingested and verified, not before.
+ * Constitutional was offered here briefly and withdrawn. The corpus does
+ * hold Arts. 4, 9, 25 and 199, so the citations were sound — but an
+ * Article 199 writ is decided on affidavits and the record. It has no
+ * witness box, so two of the five phases have nothing to run and
+ * opposing counsel has no applicable objection. Grounded in law the
+ * simulator cannot actually argue.
+ *
+ * The other six areas were never backed at all: Contract and Corporate
+ * resolved out of the Penal Code (s.415 cheating, s.489-F, s.405
+ * criminal breach of trust), and Civil, Family, Property and Tort had no
+ * statute filter, sweeping a corpus that is 45/53 criminal and evidence
+ * provisions. Generation still worked and still audited at 100%, because
+ * the audit's ground truth is that same corpus.
+ *
+ * Widen this enum when an area has both its governing instrument
+ * ingested and a phase model that fits how it is actually heard.
  */
 export type DraftableAreaOfLaw = typeof DraftableAreaOfLaw[keyof typeof DraftableAreaOfLaw];
 
 
 export const DraftableAreaOfLaw = {
   Criminal: 'Criminal',
-  Constitutional: 'Constitutional',
 } as const;
 
 export type Difficulty = typeof Difficulty[keyof typeof Difficulty];
