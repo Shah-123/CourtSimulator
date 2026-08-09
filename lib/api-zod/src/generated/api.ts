@@ -123,7 +123,7 @@ export const GetCaseResponse = zod.object({
 
 
 /**
- * @summary List all practice sessions (history)
+ * @summary List the signed-in student's practice sessions (history)
  */
 export const ListSessionsResponseItem = zod.object({
   "id": zod.int(),
@@ -791,7 +791,7 @@ export const ListObjectionGroundsResponse = zod.array(ListObjectionGroundsRespon
 
 
 /**
- * @summary Aggregate practice statistics across all sessions
+ * @summary Aggregate practice statistics across the signed-in student's sessions
  */
 export const GetDashboardSummaryResponse = zod.object({
   "totalSessions": zod.int(),
@@ -816,5 +816,61 @@ export const GetDashboardSummaryResponse = zod.object({
   "overallScore": zod.int().nullable()
 }))
 })
+
+
+/**
+ * @summary Register a student and start a signed-in session
+ */
+export const signUpBodyEmailMax = 254;
+
+export const signUpBodyDisplayNameMax = 80;
+
+export const signUpBodyPasswordMin = 10;
+export const signUpBodyPasswordMax = 200;
+
+
+
+export const SignUpBody = zod.object({
+  "email": zod.email().max(signUpBodyEmailMax),
+  "displayName": zod.string().min(1).max(signUpBodyDisplayNameMax),
+  "password": zod.string().min(signUpBodyPasswordMin).max(signUpBodyPasswordMax).describe('Length is the only rule. Composition requirements push people toward\npredictable substitutions, and the hash cost is what actually makes\nguessing expensive here.\n')
+})
+
+export const SignUpResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const LogInBody = zod.object({
+  "email": zod.email(),
+  "password": zod.string()
+})
+
+export const LogInResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
+
+
+/**
+ * @summary Clear the session cookie
+ */
+export const LogOutResponse = zod.void()
+
+
+/**
+ * @summary The currently signed-in student
+ */
+export const GetCurrentUserResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
 
 

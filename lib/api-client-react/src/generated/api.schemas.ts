@@ -9,6 +9,39 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * A student as the API is willing to describe them. The password digest is
+ * not part of this shape and is never selected into a response.
+ */
+export interface AuthUser {
+  id: number;
+  email: string;
+  displayName: string;
+}
+
+export interface SignUpInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  displayName: string;
+  /**
+     * Length is the only rule. Composition requirements push people toward
+     * predictable substitutions, and the hash cost is what actually makes
+     * guessing expensive here.
+     * @minLength 10
+     * @maxLength 200
+     */
+  password: string;
+}
+
+export interface LogInInput {
+  email: string;
+  password: string;
+}
+
 export type AreaOfLaw = typeof AreaOfLaw[keyof typeof AreaOfLaw];
 
 

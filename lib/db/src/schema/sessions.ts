@@ -9,6 +9,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { casesTable } from "./cases";
+import { usersTable } from "./users";
 
 /**
  * The long-term memory an agent carries between courtroom phases.
@@ -40,6 +41,17 @@ export const EMPTY_SESSION_MEMORY: SessionMemory = {
 
 export const sessionsTable = pgTable("sessions", {
   id: serial("id").primaryKey(),
+  /**
+   * The student who argued this session, and the only one who may read it.
+   *
+   * Not nullable: a session with no owner is readable by everyone, and a column
+   * that permits that state will eventually hold it. Every route reaches a
+   * session through one loader that filters on this, so the scoping cannot be
+   * forgotten on a route added later.
+   */
+  userId: integer("user_id")
+    .notNull()
+    .references(() => usersTable.id),
   caseId: integer("case_id")
     .notNull()
     .references(() => casesTable.id),

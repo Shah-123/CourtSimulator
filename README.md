@@ -117,6 +117,7 @@ cp .env.example .env
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string. |
 | `OPENAI_API_KEY` | Case generation, transcription, voice replies, verdict scoring. |
+| `AUTH_SECRET` | Signs the session cookie. 32+ characters, no default — sign-in fails loudly without it. |
 | `AI_SERVICE_URL` | Base URL of the Python service (default `http://localhost:8000`). |
 | `PORT` | API service port (default `5000`). |
 | `API_PORT` | API port used by the Vite dev proxy (default `5000`). |
@@ -210,9 +211,16 @@ cross-examination → closing → verdict.**
   The **Qanun-e-Shahadat Order 1984 is verified in full** (20/20) and carries
   `"verified": true` — it is the instrument every objection in the courtroom
   rests on. The Penal Code (13/15), Criminal Procedure Code (8/10) and
-  Constitution (4/8) still have provisions that differ, so those three files
-  remain `"verified": false` and everything retrieved from them is labelled ⚠
-  in the interface.
+  Constitution (4/8) still have provisions that differ.
+
+  **The flag is per provision** (`sections[i].verified`), falling back to the
+  instrument-level `verified` for provisions that do not set one. It has to be:
+  verification is decided one provision at a time, but recording it per
+  instrument meant the two Penal Code provisions still under review dragged the
+  thirteen already diffed clean down to ⚠ with them. A provision marked
+  individually reads ✓ in the provenance rail even where its neighbour in the
+  same Act reads ⚠. Set the instrument flag only once every provision in it has
+  been diffed — it is the fallback, not a summary.
 
   The exercise found six numbering errors, not just wrong wording: an objection
   ground cited QSO Art. 143 for a rule that lives in Art. 148, the whole
@@ -250,6 +258,24 @@ the corpus's own `verified` flag, so a Qanun-e-Shahadat citation now reads
 ⚠ — and a citation the corpus does not recognise is marked too, rather than
 passing silently.
 
-Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and
-security hardening (prompt-injection guards on transcribed speech, user
-scoping).
+**Sessions are scoped to the student who argued them.** Registration and sign-in
+are email + password, hashed with scrypt from Node's standard library and
+carried in an httpOnly, sameSite cookie signed with `AUTH_SECRET`. Every
+`/sessions/*` route reaches its session through a single loader that filters on
+the owner, so a session belonging to someone else is a 404 rather than a 403 —
+the response does not confirm it exists. The dashboard, which previously
+averaged every mark in the database and presented the result as the reader's own
+progress, is scoped by the same query. The case library stays shared: it is
+teaching material, not anyone's record.
+
+Sign-in is rate limited on two keys at once — 8 failures per account and 30 per
+address in 15 minutes, checked before the password is verified so a blocked
+caller cannot spend the server's hashing time either. Both are needed: limiting
+by account alone lets one guess be sprayed across a roster, and limiting by
+address alone would let a lab behind one NAT lock its own students out. A
+successful sign-in forgives the account's counter but not the address's.
+Per-address limiting only distinguishes callers when Express can see the real
+client address, which behind a proxy means setting `TRUST_PROXY`.
+
+Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and the
+remaining security hardening (prompt-injection guards on transcribed speech).

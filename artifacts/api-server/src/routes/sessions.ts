@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import {
   db,
   casesTable,
@@ -63,14 +63,32 @@ import {
   transcriptionHint,
 } from "../lib/courtroom";
 import { streamSpeech } from "../lib/voice";
+import { currentUserId, requireUser } from "../middlewares/require-user";
 
 const router: IRouter = Router();
 
-async function loadSessionDetail(sessionId: number) {
+// Every route in this file reads or writes one student's own record of
+// proceedings. Declared here rather than at the mount point so a route added
+// later is protected by default instead of by remembering.
+router.use(requireUser);
+
+/**
+ * Loads a session, or null if it does not exist **or is not this student's**.
+ *
+ * The two cases are deliberately indistinguishable to the caller, which is why
+ * ownership is a filter here rather than a check in each handler. Every
+ * `/sessions/:id` route reaches its session through this one function, so
+ * scoping is enforced in one place; a handler that forgot to check would have
+ * to have gone around it to load the row at all. Callers turn null into 404 —
+ * not 403, which would confirm the session exists.
+ */
+async function loadSessionDetail(sessionId: number, userId: number) {
   const [session] = await db
     .select()
     .from(sessionsTable)
-    .where(eq(sessionsTable.id, sessionId));
+    .where(
+      and(eq(sessionsTable.id, sessionId), eq(sessionsTable.userId, userId)),
+    );
 
   if (!session) return null;
 
@@ -112,7 +130,7 @@ function serializeSessionDetail(
   };
 }
 
-router.get("/sessions", async (_req, res): Promise<void> => {
+router.get("/sessions", async (req, res): Promise<void> => {
   const rows = await db
     .select({
       id: sessionsTable.id,
@@ -129,6 +147,7 @@ router.get("/sessions", async (_req, res): Promise<void> => {
     .from(sessionsTable)
     .innerJoin(casesTable, eq(sessionsTable.caseId, casesTable.id))
     .leftJoin(verdictsTable, eq(verdictsTable.sessionId, sessionsTable.id))
+    .where(eq(sessionsTable.userId, currentUserId(req)))
     .orderBy(desc(sessionsTable.createdAt));
 
   res.json(
@@ -158,6 +177,9 @@ router.post("/sessions", async (req, res): Promise<void> => {
   const [session] = await db
     .insert(sessionsTable)
     .values({
+      // Taken from the cookie, never from the request body. A client-supplied
+      // owner would let anyone file a session into another student's record.
+      userId: currentUserId(req),
       caseId: parsed.data.caseId,
       studentSide: parsed.data.studentSide,
       phase: "opening",
@@ -181,7 +203,7 @@ router.get("/sessions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -212,7 +234,7 @@ router.post("/sessions/:id/voice-turns", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -439,7 +461,7 @@ router.post("/sessions/:id/interject", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -617,7 +639,7 @@ router.post("/sessions/:id/call-witness", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -652,7 +674,7 @@ router.post("/sessions/:id/call-witness", async (req, res): Promise<void> => {
     transcript: `${witness.name} takes the stand. "${witness.statement}"`,
   });
 
-  const updated = await loadSessionDetail(session.id);
+  const updated = await loadSessionDetail(session.id, currentUserId(req));
   if (!updated || !updated.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -683,7 +705,7 @@ router.post("/sessions/:id/advance-phase", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -769,7 +791,7 @@ router.post("/sessions/:id/advance-phase", async (req, res): Promise<void> => {
       .where(eq(sessionsTable.id, session.id));
   }
 
-  const updated = await loadSessionDetail(session.id);
+  const updated = await loadSessionDetail(session.id, currentUserId(req));
   if (!updated || !updated.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -830,7 +852,7 @@ router.post("/sessions/:id/objection", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -968,7 +990,7 @@ Respond with strict JSON only, matching this shape:
     });
   });
 
-  const updated = await loadSessionDetail(session.id);
+  const updated = await loadSessionDetail(session.id, currentUserId(req));
   if (!updated || !updated.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -999,7 +1021,7 @@ router.post("/sessions/:id/turn", async (req, res): Promise<void> => {
     return;
   }
 
-  const detail = await loadSessionDetail(params.data.id);
+  const detail = await loadSessionDetail(params.data.id, currentUserId(req));
   if (!detail || !detail.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;
@@ -1107,7 +1129,7 @@ router.post("/sessions/:id/turn", async (req, res): Promise<void> => {
     );
   }
 
-  const updated = await loadSessionDetail(session.id);
+  const updated = await loadSessionDetail(session.id, currentUserId(req));
   if (!updated || !updated.courtCase) {
     res.status(404).json({ error: "Session not found" });
     return;

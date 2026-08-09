@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Moon, Sun } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, Moon, Sun } from "lucide-react";
+import { useLogOut } from "@workspace/api-client-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -34,6 +37,55 @@ function ThemeToggle() {
     >
       {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>
+  );
+}
+
+/**
+ * Who the record belongs to, and the way out.
+ *
+ * Renders nothing when signed out, so the same Layout wraps the sign-in page
+ * without showing a name it does not have.
+ *
+ * Signing out clears the query cache and then reloads the page outright.
+ *
+ * Clearing alone was not enough and the failure was visible: the cookie went,
+ * the sign-out control went, and the previous student's Chambers page stayed on
+ * screen with their session still listed, because emptying the cache does not
+ * reliably push already-mounted observers back through the auth gate. On a
+ * shared university lab machine that is the exact leak this scoping exists to
+ * prevent, so logout does not depend on cache semantics — the next student gets
+ * a blank page and a fresh request.
+ */
+function SignedInAs() {
+  const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
+  const logOut = useLogOut({
+    mutation: {
+      onSettled: () => {
+        queryClient.clear();
+        window.location.assign(import.meta.env.BASE_URL || "/");
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return (
+    <div className="flex items-center gap-2 border-l border-rule pl-2">
+      <span className="apparatus hidden text-muted-foreground sm:inline">
+        {user.displayName}
+      </span>
+      <button
+        type="button"
+        onClick={() => logOut.mutate()}
+        disabled={logOut.isPending}
+        className="rounded-sm p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        aria-label="Sign out"
+        title="Sign out"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 
@@ -92,6 +144,7 @@ export function Layout({ children }: { children: ReactNode }) {
               })}
             </nav>
             <ThemeToggle />
+            <SignedInAs />
           </div>
         </div>
       </header>

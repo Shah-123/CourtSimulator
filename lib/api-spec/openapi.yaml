@@ -103,7 +103,7 @@ paths:
     get:
       operationId: listSessions
       tags: [sessions]
-      summary: List all practice sessions (history)
+      summary: List the signed-in student's practice sessions (history)
       responses:
         "200":
           description: List of sessions
@@ -454,7 +454,7 @@ paths:
     get:
       operationId: getDashboardSummary
       tags: [dashboard]
-      summary: Aggregate practice statistics across all sessions
+      summary: Aggregate practice statistics across the signed-in student's sessions
       responses:
         "200":
           description: Dashboard summary
@@ -462,6 +462,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      summary: Register a student and start a signed-in session
+      responses:
+        "201":
+          description: The newly registered student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "409":
+          description: That email is already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpInput"
+
+  /auth/login:
+    post:
+      operationId: logIn
+      tags: [auth]
+      summary: Sign in with email and password
+      responses:
+        "200":
+          description: The signed-in student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Email or password is wrong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogInInput"
+
+  /auth/logout:
+    post:
+      operationId: logOut
+      tags: [auth]
+      summary: Clear the session cookie
+      responses:
+        "204":
+          description: Signed out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: The currently signed-in student
+      responses:
+        "200":
+          description: The signed-in student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Nobody is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -472,6 +550,60 @@ components:
           type: string
       required:
         - status
+
+    AuthUser:
+      type: object
+      description: |
+        A student as the API is willing to describe them. The password digest is
+        not part of this shape and is never selected into a response.
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+      required:
+        - id
+        - email
+        - displayName
+
+    SignUpInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        password:
+          type: string
+          description: |
+            Length is the only rule. Composition requirements push people toward
+            predictable substitutions, and the hash cost is what actually makes
+            guessing expensive here.
+          minLength: 10
+          maxLength: 200
+      required:
+        - email
+        - displayName
+        - password
+
+    LogInInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
 
     AreaOfLaw:
       type: string

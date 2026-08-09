@@ -2,10 +2,17 @@ import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { casesTable, db, sessionsTable, verdictsTable } from "@workspace/db";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
+import { currentUserId, requireUser } from "../middlewares/require-user";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.use(requireUser);
+
+// Every figure below is an aggregate over `rows`, so scoping the one query
+// scopes the whole summary. This endpoint previously averaged the marks of
+// every student in the database and presented the result as the reader's own
+// progress — wrong as statistics before it was wrong as privacy.
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const rows = await db
     .select({
       id: sessionsTable.id,
@@ -26,6 +33,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     .from(sessionsTable)
     .innerJoin(casesTable, eq(sessionsTable.caseId, casesTable.id))
     .leftJoin(verdictsTable, eq(verdictsTable.sessionId, sessionsTable.id))
+    .where(eq(sessionsTable.userId, currentUserId(req)))
     .orderBy(desc(sessionsTable.createdAt));
 
   const completed = rows.filter(
