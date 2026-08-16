@@ -169,15 +169,31 @@ async def refresh_session_memory(session_id: int) -> SessionMemory:
         return existing
 
 
-def format_memory_for_prompt(memory: SessionMemory | None, phase: str) -> str:
+def format_memory_for_prompt(
+    memory: SessionMemory | None,
+    phase: str,
+    *,
+    as_witness: str | None = None,
+) -> str:
     """Renders long-term memory as a system-prompt block.
 
     This is what gives an agent continuity across phases. Without it the judge
     hearing a closing argument has no idea what was said in the opening, and
     opposing counsel cannot notice the student has changed their story.
+
+    ``as_witness`` narrows the block for a witness on the stand. The bench and
+    counsel sat through the whole hearing and are entitled to all of it; a
+    witness was outside while the others testified, and handing them the full
+    record lets them answer from evidence they never heard. Courts exclude
+    witnesses for exactly this reason, so the recollection a witness is given is
+    trimmed to their own — the summary and other witnesses' testimony go, and
+    what remains is what they themselves said and what the bench directed.
     """
     if memory is None or not memory.summary:
         return ""
+
+    if as_witness is not None:
+        return _format_for_witness(memory, phase, as_witness)
 
     parts = [
         "WHAT HAS HAPPENED EARLIER IN THIS SESSION "
@@ -200,6 +216,44 @@ def format_memory_for_prompt(memory: SessionMemory | None, phase: str) -> str:
         "above as your own recollection of the proceedings. If counsel now says "
         "something that contradicts an assertion they made earlier, say so "
         "directly and quote what they said before."
+    )
+    return "\n".join(parts)
+
+
+def _format_for_witness(memory: SessionMemory, phase: str, name: str) -> str:
+    """The recollection a witness is entitled to: their own, and nothing else.
+
+    Entries are stored prefixed with the witness's name (see the summariser
+    prompt), which is what makes the split possible. A prefix that does not
+    match is another witness's evidence and is dropped rather than paraphrased —
+    a witness must not be able to infer it either.
+    """
+    prefix = name.lower()
+    mine = [
+        point
+        for point in memory.witness_testimony
+        if point.strip().lower().startswith(prefix)
+    ]
+
+    parts = [
+        f"WHAT YOU YOURSELF HAVE ALREADY SAID IN THIS SESSION, {name}:",
+        (
+            "\n".join(f"- {point}" for point in mine)
+            if mine
+            else "- (this is your first time on the stand)"
+        ),
+    ]
+
+    if memory.judge_directions:
+        directions = "\n".join(f"- {d}" for d in memory.judge_directions)
+        parts.append(f"\nDIRECTIONS THE BENCH HAS ISSUED:\n{directions}")
+
+    parts.append(
+        f"\nYou are now in the {phase.replace('_', ' ')} phase. You were outside "
+        "the courtroom while other witnesses gave evidence and you do not know "
+        "what they said. Do not answer from anything above except your own "
+        "words. If your answer now would differ from what you said earlier, say "
+        "so plainly rather than quietly changing your account."
     )
     return "\n".join(parts)
 

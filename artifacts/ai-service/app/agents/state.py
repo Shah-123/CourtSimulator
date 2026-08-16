@@ -118,10 +118,13 @@ EventKind = Literal["objection", "ruling", "testimony", "bench", "argument"]
 
 
 class ReasoningStep(BaseModel):
-    """One Thought→Action→Observation step of the judge's ReAct loop.
+    """One recorded step of an agent's reasoning before it spoke.
 
-    Surfaced in the response so the reasoning is inspectable rather than hidden
-    — the judge reads statute before it rules, and the trace proves it.
+    Surfaced in the response so the reasoning is inspectable rather than hidden.
+    The judge fills these with the Thought→Action→Observation steps of its tool
+    loop — it reads statute before it rules, and the trace proves it. The
+    witness fills a single step with what in its own statement let it answer, or
+    why it could not, which is the same claim about a different record.
     """
 
     thought: str = ""
@@ -189,6 +192,11 @@ class AgentContext:
     request: TurnRequest
     memory_prompt: str
     grounds: list[ObjectionGround]
+    # The same recollection, trimmed to what the witness on the stand is
+    # entitled to. Held separately rather than swapped in per agent because the
+    # bench and counsel read `memory_prompt` in the same turn and must still get
+    # the whole record — only the witness was out of the room.
+    witness_memory_prompt: str = ""
 
     @property
     def phase(self) -> str:

@@ -146,12 +146,21 @@ async def _judge_ruling_node(state: CourtroomState) -> dict:
 
 
 async def _witness_testify_node(state: CourtroomState) -> dict:
-    transcript = await testify(state["context"])
+    # The witness returns its grounding decision alongside the words. Carried
+    # into `reasoning` so the same trace the bench gets — why this was said —
+    # is available for the witness, whose failure mode (inventing a fact to fit
+    # the question) is the one a student is least equipped to notice.
+    transcript, reasoning = await testify(state["context"])
     if not transcript:
         return {}
     return {
         "events": [
-            CourtEvent(speaker="witness", kind="testimony", transcript=transcript)
+            CourtEvent(
+                speaker="witness",
+                kind="testimony",
+                transcript=transcript,
+                reasoning=reasoning,
+            )
         ]
     }
 
@@ -235,6 +244,13 @@ async def build_context(request: TurnRequest) -> AgentContext:
         request=request,
         memory_prompt=format_memory_for_prompt(memory, request.phase),
         grounds=grounds,
+        witness_memory_prompt=(
+            format_memory_for_prompt(
+                memory, request.phase, as_witness=request.active_witness
+            )
+            if request.active_witness
+            else ""
+        ),
     )
 
 

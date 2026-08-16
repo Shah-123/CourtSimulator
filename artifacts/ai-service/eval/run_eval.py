@@ -33,6 +33,8 @@ from eval.judge_eval import evaluate_judge
 from eval.judge_eval import print_report as print_judge
 from eval.retrieval_eval import evaluate_retrieval
 from eval.retrieval_eval import print_report as print_retrieval
+from eval.witness_eval import evaluate_witness
+from eval.witness_eval import print_report as print_witness
 
 
 def _print_spend(label: str, ledger) -> None:
@@ -61,6 +63,7 @@ async def main() -> None:
     parser.add_argument("--courtroom", action="store_true", help="add courtroom agents")
     parser.add_argument("--courtroom-only", action="store_true")
     parser.add_argument("--courtroom-limit", type=int, default=None)
+    parser.add_argument("--witness", action="store_true", help="add witness grounding")
     args = parser.parse_args()
 
     await db.init_pool()
@@ -84,6 +87,14 @@ async def main() -> None:
         if args.courtroom or args.courtroom_only:
             court_results = await evaluate_courtroom(limit=args.courtroom_limit)
             print_courtroom(court_results)
+
+        # Opt-in alongside the courtroom: this drives the witness agent, so it
+        # is not part of the fast gate for the same reason the courtroom is not.
+        if args.witness or args.courtroom_only:
+            with track() as ledger:
+                witness_results = await evaluate_witness()
+            print_witness(witness_results)
+            _print_spend("witness", ledger)
     finally:
         await db.close_pool()
 

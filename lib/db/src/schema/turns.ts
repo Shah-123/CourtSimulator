@@ -11,7 +11,7 @@ import { z } from "zod/v4";
 import { sessionsTable } from "./sessions";
 
 /**
- * One Thought-Action-Observation step of the judge's ReAct loop.
+ * One recorded step of an agent's reasoning before it spoke.
  *
  * Mirrors `CourtReasoningStep` in the OpenAPI contract. The AI service already
  * returns these on every ruling, but they lived only in the turn response — so
@@ -33,9 +33,11 @@ export const turnsTable = pgTable("turns", {
   speaker: text("speaker").notNull(),
   witnessName: text("witness_name"),
   transcript: text("transcript").notNull(),
-  // Null for every speaker but the bench, and for rulings made without the
-  // tool loop. Absence means "this turn had no reasoning to show", never
-  // "the reasoning was lost".
+  // Carried by the bench and by the witness, and null for anyone else. For the
+  // bench these are the Thought-Action-Observation steps of its tool loop; for
+  // the witness it is the one line recording what in its own statement let it
+  // answer, or why it could not. Absence means "this turn had no reasoning to
+  // show", never "the reasoning was lost".
   reasoning: jsonb("reasoning").$type<ReasoningStep[]>(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
