@@ -5,22 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Adalat AI — "the record".
+ * Adalat AI — "The Sovereign Court Record & Moot Chamber"
  *
- * The palette is drawn from the artifacts of a subcontinental court rather
- * than from a generic idea of "legal": the cool grey-green of cause-list
- * newsprint, blue-black fountain-pen ink, and the aniline violet of the
- * duplicating ink that carbon-copy court records were struck in. The previous
- * scheme — warm cream, Playfair Display, oxblood — is the exact combination
- * generated design defaults to, and it said nothing about Pakistan.
- *
- * Two colours are reserved and must not be spent on decoration:
- *   --stamp  something is contested, unverified, or outstanding — an objection
- *            taken, a provision not yet checked, a matter still part-heard.
- *   --seal   something is affirmed — a provision confirmed against
- *            pakistancode.gov.pk, a criterion the student handled well.
- * Their scarcity is what makes them readable at a glance from the back of a
- * room, which is where this will be demonstrated.
+ * The palette merges the solemnity of Pakistan's superior judiciary with
+ * high-contrast clarity:
+ * - Court newsprint & parchment backgrounds
+ * - Deep midnight ink / slate
+ * - Imperial judicial violet (--primary)
+ * - Objection stamp vermilion (--stamp)
+ * - Verified statute emerald seal (--seal)
+ * - Gold / brass judicial insignia (--gold)
  */
 
 @theme inline {
@@ -53,13 +47,15 @@
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
 
-  /* Reserved semantics — see the note above. */
+  /* Reserved semantics */
   --color-stamp: hsl(var(--stamp));
   --color-stamp-foreground: hsl(var(--stamp-foreground));
   --color-stamp-wash: hsl(var(--stamp-wash));
   --color-seal: hsl(var(--seal));
   --color-seal-wash: hsl(var(--seal-wash));
   --color-rule: hsl(var(--rule));
+  --color-gold: hsl(var(--gold));
+  --color-gold-wash: hsl(var(--gold-wash));
 
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
@@ -82,88 +78,95 @@
 }
 
 :root {
-  --background: 80 9% 91%; /* e9ebe4 — cause-list newsprint */
-  --foreground: 212 24% 13%; /* 1a1f27 — blue-black ink */
-  --card: 75 25% 98%; /* fafbf6 — fresh paper */
-  --card-foreground: 212 24% 13%;
-  --card-border: 80 8% 82%;
-  --popover: 75 25% 98%;
-  --popover-foreground: 212 24% 13%;
-  --popover-border: 80 8% 82%;
-  --primary: 265 42% 33%; /* 4c2f78 — court duplicating ink */
-  --primary-foreground: 75 25% 98%;
-  --secondary: 80 10% 87%;
-  --secondary-foreground: 212 24% 13%;
-  --muted: 80 10% 87%;
-  --muted-foreground: 212 11% 40%;
-  --accent: 265 20% 88%;
-  --accent-foreground: 265 42% 30%;
-  --destructive: 10 70% 42%;
-  --destructive-foreground: 75 25% 98%;
+  --background: 80 12% 94%; /* Parchment newsprint */
+  --foreground: 216 28% 12%; /* Deep midnight ink */
+  --card: 75 30% 99%; /* Crisp bond paper */
+  --card-foreground: 216 28% 12%;
+  --card-border: 80 10% 84%;
+  --popover: 75 30% 99%;
+  --popover-foreground: 216 28% 12%;
+  --popover-border: 80 10% 84%;
+  
+  --primary: 265 54% 34%; /* High court royal duplicating violet */
+  --primary-foreground: 75 30% 99%;
+  
+  --secondary: 80 12% 89%;
+  --secondary-foreground: 216 28% 12%;
+  --muted: 80 12% 89%;
+  --muted-foreground: 216 14% 38%;
+  --accent: 265 30% 92%;
+  --accent-foreground: 265 54% 28%;
+  --destructive: 8 76% 44%;
+  --destructive-foreground: 75 30% 99%;
 
-  --stamp: 10 72% 43%; /* c03d24 — objection, nothing else */
-  --stamp-foreground: 75 25% 98%;
-  --stamp-wash: 10 55% 94%;
-  --seal: 158 42% 25%; /* 255b48 — verified against the statute book */
-  --seal-wash: 158 30% 92%;
-  --rule: 80 8% 78%;
+  --stamp: 8 76% 44%; /* Objection stamp vermilion */
+  --stamp-foreground: 75 30% 99%;
+  --stamp-wash: 8 60% 95%;
+  --seal: 156 50% 28%; /* Verified statute emerald */
+  --seal-wash: 156 35% 93%;
+  --rule: 80 10% 82%;
+  --gold: 40 85% 42%;
+  --gold-wash: 40 70% 94%;
 
-  --border: 80 8% 82%;
-  --input: 80 8% 78%;
-  --ring: 265 42% 33%;
+  --border: 80 10% 84%;
+  --input: 80 10% 80%;
+  --ring: 265 54% 34%;
 
-  --sidebar: 80 11% 88%;
-  --sidebar-foreground: 212 24% 13%;
-  --sidebar-border: 80 8% 80%;
-  --sidebar-primary: 265 42% 33%;
-  --sidebar-primary-foreground: 75 25% 98%;
-  --sidebar-accent: 265 18% 84%;
-  --sidebar-accent-foreground: 265 42% 30%;
-  --sidebar-ring: 265 42% 33%;
+  --sidebar: 80 12% 90%;
+  --sidebar-foreground: 216 28% 12%;
+  --sidebar-border: 80 10% 82%;
+  --sidebar-primary: 265 54% 34%;
+  --sidebar-primary-foreground: 75 30% 99%;
+  --sidebar-accent: 265 22% 86%;
+  --sidebar-accent-foreground: 265 54% 28%;
+  --sidebar-ring: 265 54% 34%;
 
-  /* Documents have corners. Not zero — that reads as the broadsheet cliché. */
-  --radius: 0.1875rem;
+  --radius: 0.25rem;
 }
 
 .dark {
-  --background: 215 24% 10%; /* 141920 — the courtroom after hours */
-  --foreground: 75 18% 92%;
-  --card: 215 20% 14%;
-  --card-foreground: 75 18% 92%;
-  --card-border: 215 14% 24%;
-  --popover: 215 20% 14%;
-  --popover-foreground: 75 18% 92%;
-  --popover-border: 215 14% 24%;
-  --primary: 265 52% 72%; /* lifted so violet survives on ink */
-  --primary-foreground: 215 24% 10%;
-  --secondary: 215 16% 20%;
-  --secondary-foreground: 75 18% 92%;
-  --muted: 215 16% 20%;
-  --muted-foreground: 215 10% 62%;
-  --accent: 265 24% 26%;
-  --accent-foreground: 265 52% 82%;
-  --destructive: 10 62% 52%;
-  --destructive-foreground: 75 18% 92%;
+  --background: 220 28% 8%; /* #0c1017 - Dark chamber midnight */
+  --foreground: 75 20% 94%; /* Crisp ivory */
+  --card: 220 24% 12%; /* #131923 */
+  --card-foreground: 75 20% 94%;
+  --card-border: 220 18% 22%;
+  --popover: 220 24% 12%;
+  --popover-foreground: 75 20% 94%;
+  --popover-border: 220 18% 22%;
+  
+  --primary: 265 65% 72%; /* Luminous royal violet */
+  --primary-foreground: 220 28% 8%;
+  
+  --secondary: 220 20% 16%;
+  --secondary-foreground: 75 20% 94%;
+  --muted: 220 20% 16%;
+  --muted-foreground: 220 14% 64%;
+  --accent: 265 30% 22%;
+  --accent-foreground: 265 70% 85%;
+  --destructive: 8 72% 56%;
+  --destructive-foreground: 75 20% 94%;
 
-  --stamp: 10 68% 58%;
-  --stamp-foreground: 215 24% 10%;
-  --stamp-wash: 10 40% 18%;
-  --seal: 158 44% 58%;
-  --seal-wash: 158 30% 15%;
-  --rule: 215 14% 26%;
+  --stamp: 8 72% 58%;
+  --stamp-foreground: 220 28% 8%;
+  --stamp-wash: 8 45% 16%;
+  --seal: 156 52% 54%;
+  --seal-wash: 156 35% 15%;
+  --rule: 220 18% 20%;
+  --gold: 40 85% 60%;
+  --gold-wash: 40 45% 18%;
 
-  --border: 215 14% 24%;
-  --input: 215 14% 28%;
-  --ring: 265 52% 72%;
+  --border: 220 18% 22%;
+  --input: 220 18% 26%;
+  --ring: 265 65% 72%;
 
-  --sidebar: 215 22% 12%;
-  --sidebar-foreground: 75 18% 92%;
-  --sidebar-border: 215 14% 22%;
-  --sidebar-primary: 265 52% 72%;
-  --sidebar-primary-foreground: 215 24% 10%;
-  --sidebar-accent: 265 24% 24%;
-  --sidebar-accent-foreground: 265 52% 82%;
-  --sidebar-ring: 265 52% 72%;
+  --sidebar: 220 26% 10%;
+  --sidebar-foreground: 75 20% 94%;
+  --sidebar-border: 220 18% 18%;
+  --sidebar-primary: 265 65% 72%;
+  --sidebar-primary-foreground: 220 28% 8%;
+  --sidebar-accent: 265 25% 20%;
+  --sidebar-accent-foreground: 265 70% 85%;
+  --sidebar-ring: 265 65% 72%;
 }
 
 @layer base {
@@ -184,13 +187,27 @@
   h6 {
     @apply font-serif text-foreground;
     font-optical-sizing: auto;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.012em;
   }
 
-  /* Keyboard users get a visible target everywhere, not only where a component
-     happened to style one. */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* Smooth scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -206,48 +223,82 @@
 }
 
 @layer components {
-  /* The masthead's Urdu half. One word, one place. */
+  /* The masthead's Urdu half */
   .wordmark-urdu {
     font-family: var(--font-urdu);
-    line-height: 2.4;
+    line-height: 2.2;
   }
 
-  /*
-   * Small caps in Courier, used for anything the court typed rather than
-   * spoke: speaker attributions, phase names, column headings.
-   */
+  /* Small caps in Courier, used for apparatus */
   .apparatus {
     @apply font-mono uppercase;
     font-size: 0.6875rem;
     letter-spacing: 0.09em;
   }
 
-  /*
-   * A paragraph of the record. The left rule is the marginal annotation of a
-   * court file — vermilion where an objection was taken, violet where the
-   * bench ruled — and it is the only structural decoration on the page.
-   */
+  /* Courtroom Transcript Record Entry */
   .record-entry {
-    @apply relative border-l-2 border-transparent pl-4;
+    @apply relative border-l-2 border-transparent pl-4 transition-colors duration-150;
   }
 
   .record-entry[data-mark='objection'] {
-    @apply border-stamp bg-stamp-wash/60;
+    @apply border-stamp bg-stamp-wash/70 rounded-r-sm;
   }
 
   .record-entry[data-mark='ruling'] {
-    @apply border-primary bg-accent/40;
+    @apply border-primary bg-accent/50 rounded-r-sm shadow-sm;
   }
 
   .record-entry[data-mark='counsel'] {
-    @apply border-foreground/25;
+    @apply border-foreground/25 hover:border-foreground/40;
   }
 
   .record-entry[data-mark='witness'] {
-    @apply border-seal/50;
+    @apply border-seal/60 bg-seal-wash/30 rounded-r-sm;
   }
 
   .record-entry[data-mark='bench'] {
-    @apply border-primary/40;
+    @apply border-primary/50 bg-primary/5 rounded-r-sm;
+  }
+
+  /* Official Judicial Decree & Stamps */
+  .judicial-stamp {
+    @apply inline-flex items-center justify-center font-mono uppercase font-bold tracking-wider px-2 py-0.5 text-xs border rounded-sm;
+  }
+
+  .judicial-stamp-sustained {
+    @apply inline-flex items-center justify-center font-mono uppercase font-bold tracking-wider px-2 py-0.5 text-xs rounded-sm border border-seal text-seal bg-seal-wash;
+  }
+
+  .judicial-stamp-overruled {
+    @apply inline-flex items-center justify-center font-mono uppercase font-bold tracking-wider px-2 py-0.5 text-xs rounded-sm border border-stamp text-stamp bg-stamp-wash;
+  }
+
+  /* Interactive card hover elevation */
+  .court-card {
+    @apply bg-card border border-card-border rounded-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md;
+  }
+
+  /* Audio visualizer bar animations */
+  @keyframes wave-bounce {
+    0%, 100% {
+      height: 20%;
+    }
+    50% {
+      height: 90%;
+    }
+  }
+
+  .animate-wave-1 {
+    animation: wave-bounce 1s ease-in-out infinite;
+  }
+  .animate-wave-2 {
+    animation: wave-bounce 1s ease-in-out infinite 0.2s;
+  }
+  .animate-wave-3 {
+    animation: wave-bounce 1s ease-in-out infinite 0.4s;
+  }
+  .animate-wave-4 {
+    animation: wave-bounce 1s ease-in-out infinite 0.6s;
   }
 }
