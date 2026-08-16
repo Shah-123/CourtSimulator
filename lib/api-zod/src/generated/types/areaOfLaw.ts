@@ -6,6 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * The area a stored case belongs to. Deliberately wider than
+ * DraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing
+ * this to what the corpus can ground would make the case list fail to
+ * parse its own seed data. This is the read side — what a case may *be*,
+ * not what a student may ask for.
+ */
 export type AreaOfLaw = typeof AreaOfLaw[keyof typeof AreaOfLaw];
 
 

@@ -28,7 +28,7 @@ export const ListCasesQueryParams = zod.object({
 export const ListCasesResponseItem = zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -84,14 +84,14 @@ export const ListCasesResponse = zod.array(ListCasesResponseItem)
  * @summary Generate a new AI-authored case scenario under Pakistani law
  */
 export const GenerateCaseBody = zod.object({
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal']).describe('The areas a student may ask the model to draft a new case in.\n\nCriminal only, and the constraint is the courtroom, not just the\ncorpus. A drafted case is argued through opening → witness examination\n→ cross-examination → closing, and every objection ground the\nsimulator can raise is an examination ground: hearsay, leading\nquestion, secondary evidence, impeachment, s.162 CrPC. A criminal\ntrial is the one proceeding where all of that applies at once.\n\nConstitutional was offered here briefly and withdrawn. The corpus does\nhold Arts. 4, 9, 25 and 199, so the citations were sound — but an\nArticle 199 writ is decided on affidavits and the record. It has no\nwitness box, so two of the five phases have nothing to run and\nopposing counsel has no applicable objection. Grounded in law the\nsimulator cannot actually argue.\n\nThe other six areas were never backed at all: Contract and Corporate\nresolved out of the Penal Code (s.415 cheating, s.489-F, s.405\ncriminal breach of trust), and Civil, Family, Property and Tort had no\nstatute filter, sweeping a corpus that is 45\/53 criminal and evidence\nprovisions. Generation still worked and still audited at 100%, because\nthe audit\'s ground truth is that same corpus.\n\nWiden this enum when an area has both its governing instrument\ningested and a phase model that fits how it is actually heard.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced'])
 })
 
 export const GenerateCaseResponse = zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -152,7 +152,7 @@ export const GetCaseParams = zod.object({
 export const GetCaseResponse = zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -204,13 +204,13 @@ export const GetCaseResponse = zod.object({
 
 
 /**
- * @summary List all practice sessions (history)
+ * @summary List the signed-in student's practice sessions (history)
  */
 export const ListSessionsResponseItem = zod.object({
   "id": zod.int(),
   "caseId": zod.int(),
   "caseTitle": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "studentSide": zod.enum(['petitioner', 'respondent']),
   "phase": zod.enum(['opening', 'witness_examination', 'cross_examination', 'closing', 'verdict']),
   "status": zod.enum(['in_progress', 'completed']),
@@ -240,7 +240,7 @@ export const CreateSessionResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -345,7 +345,7 @@ export const GetSessionResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -516,7 +516,7 @@ export const CallWitnessResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -628,7 +628,7 @@ export const AdvanceSessionPhaseResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -742,7 +742,7 @@ export const RaiseObjectionResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -858,7 +858,7 @@ export const SendCourtroomTurnResponse = zod.object({
   "case": zod.object({
   "id": zod.int(),
   "title": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "difficulty": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
   "summary": zod.string(),
   "applicableLaws": zod.string(),
@@ -1034,7 +1034,7 @@ export const ListObjectionGroundsResponse = zod.array(ListObjectionGroundsRespon
 
 
 /**
- * @summary Aggregate practice statistics across all sessions
+ * @summary Aggregate practice statistics across the signed-in student's sessions
  */
 export const GetDashboardSummaryResponse = zod.object({
   "totalSessions": zod.int(),
@@ -1043,14 +1043,14 @@ export const GetDashboardSummaryResponse = zod.object({
   "strongestSkill": zod.string().nullable(),
   "weakestSkill": zod.string().nullable(),
   "sessionsByAreaOfLaw": zod.array(zod.object({
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "count": zod.int()
 })),
   "recentSessions": zod.array(zod.object({
   "id": zod.int(),
   "caseId": zod.int(),
   "caseTitle": zod.string(),
-  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']),
+  "areaOfLaw": zod.enum(['Criminal', 'Civil', 'Constitutional', 'Family', 'Contract', 'Property', 'Corporate', 'Tort']).describe('The area a stored case belongs to. Deliberately wider than\nDraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing\nthis to what the corpus can ground would make the case list fail to\nparse its own seed data. This is the read side — what a case may \*be\*,\nnot what a student may ask for.\n'),
   "studentSide": zod.enum(['petitioner', 'respondent']),
   "phase": zod.enum(['opening', 'witness_examination', 'cross_examination', 'closing', 'verdict']),
   "status": zod.enum(['in_progress', 'completed']),
@@ -1059,5 +1059,61 @@ export const GetDashboardSummaryResponse = zod.object({
   "overallScore": zod.int().nullable()
 }))
 })
+
+
+/**
+ * @summary Register a student and start a signed-in session
+ */
+export const signUpBodyEmailMax = 254;
+
+export const signUpBodyDisplayNameMax = 80;
+
+export const signUpBodyPasswordMin = 10;
+export const signUpBodyPasswordMax = 200;
+
+
+
+export const SignUpBody = zod.object({
+  "email": zod.email().max(signUpBodyEmailMax),
+  "displayName": zod.string().min(1).max(signUpBodyDisplayNameMax),
+  "password": zod.string().min(signUpBodyPasswordMin).max(signUpBodyPasswordMax).describe('Length is the only rule. Composition requirements push people toward\npredictable substitutions, and the hash cost is what actually makes\nguessing expensive here.\n')
+})
+
+export const SignUpResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const LogInBody = zod.object({
+  "email": zod.email(),
+  "password": zod.string()
+})
+
+export const LogInResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
+
+
+/**
+ * @summary Clear the session cookie
+ */
+export const LogOutResponse = zod.void()
+
+
+/**
+ * @summary The currently signed-in student
+ */
+export const GetCurrentUserResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.email(),
+  "displayName": zod.string()
+}).describe('A student as the API is willing to describe them. The password digest is\nnot part of this shape and is never selected into a response.\n')
 
 

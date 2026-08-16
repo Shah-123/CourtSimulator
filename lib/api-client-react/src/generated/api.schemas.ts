@@ -9,6 +9,46 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * A student as the API is willing to describe them. The password digest is
+ * not part of this shape and is never selected into a response.
+ */
+export interface AuthUser {
+  id: number;
+  email: string;
+  displayName: string;
+}
+
+export interface SignUpInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  displayName: string;
+  /**
+     * Length is the only rule. Composition requirements push people toward
+     * predictable substitutions, and the hash cost is what actually makes
+     * guessing expensive here.
+     * @minLength 10
+     * @maxLength 200
+     */
+  password: string;
+}
+
+export interface LogInInput {
+  email: string;
+  password: string;
+}
+
+/**
+ * The area a stored case belongs to. Deliberately wider than
+ * DraftableAreaOfLaw: the seeded library ships a Civil case, so narrowing
+ * this to what the corpus can ground would make the case list fail to
+ * parse its own seed data. This is the read side — what a case may *be*,
+ * not what a student may ask for.
+ */
 export type AreaOfLaw = typeof AreaOfLaw[keyof typeof AreaOfLaw];
 
 
@@ -21,6 +61,40 @@ export const AreaOfLaw = {
   Property: 'Property',
   Corporate: 'Corporate',
   Tort: 'Tort',
+} as const;
+
+/**
+ * The areas a student may ask the model to draft a new case in.
+ *
+ * Criminal only, and the constraint is the courtroom, not just the
+ * corpus. A drafted case is argued through opening → witness examination
+ * → cross-examination → closing, and every objection ground the
+ * simulator can raise is an examination ground: hearsay, leading
+ * question, secondary evidence, impeachment, s.162 CrPC. A criminal
+ * trial is the one proceeding where all of that applies at once.
+ *
+ * Constitutional was offered here briefly and withdrawn. The corpus does
+ * hold Arts. 4, 9, 25 and 199, so the citations were sound — but an
+ * Article 199 writ is decided on affidavits and the record. It has no
+ * witness box, so two of the five phases have nothing to run and
+ * opposing counsel has no applicable objection. Grounded in law the
+ * simulator cannot actually argue.
+ *
+ * The other six areas were never backed at all: Contract and Corporate
+ * resolved out of the Penal Code (s.415 cheating, s.489-F, s.405
+ * criminal breach of trust), and Civil, Family, Property and Tort had no
+ * statute filter, sweeping a corpus that is 45/53 criminal and evidence
+ * provisions. Generation still worked and still audited at 100%, because
+ * the audit's ground truth is that same corpus.
+ *
+ * Widen this enum when an area has both its governing instrument
+ * ingested and a phase model that fits how it is actually heard.
+ */
+export type DraftableAreaOfLaw = typeof DraftableAreaOfLaw[keyof typeof DraftableAreaOfLaw];
+
+
+export const DraftableAreaOfLaw = {
+  Criminal: 'Criminal',
 } as const;
 
 export type Difficulty = typeof Difficulty[keyof typeof Difficulty];
@@ -344,7 +418,7 @@ export interface CourtroomTurnResult {
 }
 
 export interface CaseGenerateInput {
-  areaOfLaw: AreaOfLaw;
+  areaOfLaw: DraftableAreaOfLaw;
   difficulty: Difficulty;
 }
 

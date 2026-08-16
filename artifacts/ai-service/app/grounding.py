@@ -17,6 +17,20 @@ from app.rag.retrieval import RetrievedSection, search_statutes
 # Areas with no corpus coverage deliberately have no statute filter — retrieval
 # runs across everything and returns weaker matches, which the post-generation
 # verification step catches.
+#
+# Seven of these are currently unreachable: `DraftableAreaOfLaw` in the OpenAPI
+# contract gates generation to Criminal alone. The weak-match fallback below
+# turned out not to be enough on its own — a Contract case answered out of
+# s.415/s.489-F PPC still passes the citation audit, because the audit's ground
+# truth is this same corpus, so nothing downstream flags it.
+#
+# Constitutional is unreachable for a different reason and its query is still
+# right: the corpus grounds it fine, but an Article 199 writ is heard on the
+# record, and the courtroom only models a trial with a witness box. Restoring
+# it needs a phase model, not a statute.
+#
+# All eight are kept rather than deleted: each becomes correct again once its
+# area is served, and the query is the part that takes thought.
 AREA_SEED_QUERIES: dict[str, tuple[str, list[str] | None]] = {
     "Criminal": (
         "offence punishment intention culpable homicide theft cheating hurt "

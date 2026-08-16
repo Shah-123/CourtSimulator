@@ -110,6 +110,17 @@ export const statuteCorpusFileSchema = z.object({
   citationPrefix: z.string(),
   citationUnit: z.enum(["s.", "Art. "]),
   sourceUrl: z.string(),
+  /**
+   * Default verification state for provisions that do not declare their own.
+   *
+   * Verification is decided one provision at a time — a diff against the
+   * official text either matches or it does not — but it was only recordable
+   * per instrument, so two provisions that still differed dragged the thirteen
+   * already diffed clean in the same file down to ⚠ with them. Files written
+   * before per-provision flags existed carry no section-level value, and this
+   * remains their answer, so nothing changes until a provision is marked
+   * individually.
+   */
   verified: z.boolean().default(false),
   sections: z
     .array(
@@ -118,6 +129,13 @@ export const statuteCorpusFileSchema = z.object({
         heading: z.string(),
         chapter: z.string().nullable().default(null),
         content: z.string(),
+        /**
+         * This provision's own verification state, overriding the
+         * instrument-level default above. Set it only after diffing this
+         * provision against the official source; absent means "inherit", not
+         * "unverified".
+         */
+        verified: z.boolean().optional(),
       }),
     )
     .min(1),
