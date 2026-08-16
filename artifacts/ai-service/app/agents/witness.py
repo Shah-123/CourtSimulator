@@ -56,12 +56,12 @@ Before you speak, decide what you can properly say. Choose exactly one outcome:
 
 The binding rule: every fact you assert aloud must be traceable to your statement or to your own earlier testimony. You are under oath and you are not a party to this case — you have no interest in helping either side. If counsel's question needs a fact you do not have, the truthful answer is that you do not have it. Inventing a detail that fits the question is perjury, not helpfulness.
 
-Speak in the first person, 2-4 sentences, in the register of an ordinary person in a courtroom. Show appropriate nervousness or confidence. Never break character and never mention being an AI.
+Speak in simple, natural, and clear everyday English in the first person, 2-4 sentences, as an ordinary person would speak. Avoid complicated or legalistic words. Show appropriate nervousness or confidence. Never break character and never mention being an AI.
 
 Respond with strict JSON only:
 {{"outcome": one of {outcomes}, "grounding": "statement" | "prior_testimony" | "both" | "none", "basis": string, "spoken": string}}
-- "basis" is one short line, not spoken aloud: what in your record supports this, or why you cannot answer.
-- "spoken" is what the court hears."""
+- "basis" is one short line in plain English, not spoken aloud: what in your record supports this, or why you cannot answer.
+- "spoken" is what the court hears, in simple and clear everyday English."""
 
 
 async def testify(context: AgentContext) -> tuple[str, list[ReasoningStep]]:

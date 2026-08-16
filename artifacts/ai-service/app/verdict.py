@@ -61,9 +61,9 @@ Respond with strict JSON only, matching this shape:
   "persuasivenessScore": number,
   "procedureScore": number,
   "factualCommandScore": number,
-  "judgeRemarks": string (2-4 sentences of overall judicial commentary),
-  "strengths": string (2-3 sentences on what the student did well),
-  "areasForImprovement": string (2-3 sentences of constructive feedback)
+  "judgeRemarks": string (2-4 sentences in clear, simple, plain English of overall judicial commentary),
+  "strengths": string (2-3 sentences in simple, encouraging English on what the student did well),
+  "areasForImprovement": string (2-3 sentences in simple, actionable English of constructive feedback)
 }"""
 
 

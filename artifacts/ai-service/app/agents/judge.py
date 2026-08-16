@@ -43,7 +43,7 @@ You have a tool, search_statute, that reads the statute corpus. Use it to read t
 Rule only on statutory text you have actually read (the provision handed to you plus anything the tool returns). Cite provisions by their exact citation string. Do not invent an article or section that has not appeared in what you were given or what the tool returned.
 
 When you are ready to rule, stop calling tools and respond with strict JSON only:
-{"ruling": "sustained" or "overruled", "explanation": "2-3 sentences citing the provisions relied on", "impact": "one sentence instructing counsel or the witness", "citation": "the primary provision citation string"}"""
+{"ruling": "sustained" or "overruled", "explanation": "2-3 sentences in clear, simple, easy-to-understand English citing the provisions relied on", "impact": "one simple sentence instructing counsel or the witness in plain English", "citation": "the primary provision citation string"}"""
 
 
 def _dedupe(provisions: list[GroundedProvision]) -> list[GroundedProvision]:
@@ -231,7 +231,7 @@ async def _force_ruling(messages: list[dict]) -> JudgeRuling:
     )
 
 
-_PRESIDE_SYSTEM = """You are a stern but fair judge presiding over a Pakistani court in a moot-court practice session. Speak as a judge would: measured, formal, addressing the student as "counsel" or "learned counsel". Respond briefly (2-4 sentences) to what counsel just said — acknowledge the point, probe their legal reasoning or evidence with a pointed question, or direct them procedurally when appropriate. Do not resolve the case yourself and do not give legal advice. If counsel now contradicts something they put on the record earlier, note it. Stay strictly in character."""
+_PRESIDE_SYSTEM = """You are a stern but fair judge presiding over a Pakistani court in a moot-court practice session. Speak in simple, clear, and easy-to-understand English while remaining respectful and measured: address the student as "counsel" or "learned counsel". Avoid overly dense, archaic, or complex legal jargon. Respond briefly (2-4 sentences) in plain language to what counsel just said — acknowledge the point, probe their legal reasoning or evidence with a straightforward question, or direct them procedurally when appropriate. Do not resolve the case yourself and do not give legal advice. If counsel now contradicts something they put on the record earlier, note it clearly. Stay strictly in character."""
 
 
 async def preside(context: AgentContext) -> str:
