@@ -117,6 +117,7 @@ cp .env.example .env
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string. |
 | `OPENAI_API_KEY` | Case generation, transcription, voice replies, verdict scoring. |
+| `AUTH_SECRET` | Signs the session cookie. 32+ characters, no default — sign-in fails loudly without it. |
 | `AI_SERVICE_URL` | Base URL of the Python service (default `http://localhost:8000`). |
 | `PORT` | API service port (default `5000`). |
 | `API_PORT` | API port used by the Vite dev proxy (default `5000`). |
@@ -278,6 +279,24 @@ generated, so cases drafted before the corpus was verified still show ⚠ agains
 provisions that now read ✓. The live audit and the session provenance rail read
 the corpus directly and are correct; regenerate a case to refresh its snapshot.
 
-Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and
-security hardening (prompt-injection guards on transcribed speech, user
-scoping).
+**Sessions are scoped to the student who argued them.** Registration and sign-in
+are email + password, hashed with scrypt from Node's standard library and
+carried in an httpOnly, sameSite cookie signed with `AUTH_SECRET`. Every
+`/sessions/*` route reaches its session through a single loader that filters on
+the owner, so a session belonging to someone else is a 404 rather than a 403 —
+the response does not confirm it exists. The dashboard, which previously
+averaged every mark in the database and presented the result as the reader's own
+progress, is scoped by the same query. The case library stays shared: it is
+teaching material, not anyone's record.
+
+Sign-in is rate limited on two keys at once — 8 failures per account and 30 per
+address in 15 minutes, checked before the password is verified so a blocked
+caller cannot spend the server's hashing time either. Both are needed: limiting
+by account alone lets one guess be sprayed across a roster, and limiting by
+address alone would let a lab behind one NAT lock its own students out. A
+successful sign-in forgives the account's counter but not the address's.
+Per-address limiting only distinguishes callers when Express can see the real
+client address, which behind a proxy means setting `TRUST_PROXY`.
+
+Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and the
+remaining security hardening (prompt-injection guards on transcribed speech).

@@ -8,6 +8,11 @@ the corpus text and the official text side by side, with the substantive
 word-level differences marked, so a human can make the call in seconds instead
 of minutes.
 
+The flag is per provision (``sections[i].verified``), falling back to the
+instrument-level ``verified`` for provisions that do not set one. Mark the ones
+that matched; a provision still under review keeps the ⚠ without taking the rest
+of its instrument down with it.
+
 The expensive part of verification is not the decision, it is finding the
 passage and spotting a dropped clause in a wall of statutory prose. That is the
 part this automates.
@@ -156,18 +161,76 @@ def words(text: str) -> list[str]:
     return re.findall(r"[\w'-]+", normalise(text).lower())
 
 
+# Spans set below this fraction of the document's dominant size are apparatus,
+# not law. Measured across all three official PDFs: body text is 11-12pt and
+# footnotes are 7-8pt, with nothing in between, so the boundary is a gap rather
+# than a guess. 0.85 sits inside that gap for every one of them.
+FOOTNOTE_SIZE_RATIO = 0.85
+
+
+def _text_without_footnotes(doc) -> str:
+    """Page text with the amendment footnotes dropped, by font size.
+
+    Every remaining difference on the three unverified instruments was a
+    footnote the extractor had inlined into the body — "Constitution (Twenty-
+    first Amendment) Act, 2024, s. 16" arriving in the middle of Article 199 and
+    being reported as text the corpus omitted. They cannot be filtered after the
+    fact: ``normalise`` strips the word "Amendment" out of the citation before
+    ``is_apparatus`` ever sees the chunk, so the evidence needed to recognise a
+    footnote is destroyed upstream of the check for one.
+
+    A footnote *rule* was the obvious anchor and does not work — only 18 of the
+    Constitution's 176 pages print one and the Penal Code prints none. Size is
+    what the typesetter actually used. Dropping small spans also removes the
+    superscript markers that otherwise glue themselves to the following word
+    ("1Subs." reaching the diff as part of the sentence).
+    """
+    sizes: dict[float, int] = {}
+    for page in doc:
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    size = round(span["size"], 1)
+                    sizes[size] = sizes.get(size, 0) + len(span["text"])
+    if not sizes:
+        return ""
+
+    # Weighted by characters, not by span count: a heading is a whole span too,
+    # and the body is whatever most of the document's *text* is set in.
+    floor = max(sizes, key=lambda size: sizes[size]) * FOOTNOTE_SIZE_RATIO
+
+    pages: list[str] = []
+    for page in doc:
+        lines: list[str] = []
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                kept = "".join(
+                    span["text"]
+                    for span in line.get("spans", [])
+                    if span["size"] >= floor
+                )
+                if kept.strip():
+                    lines.append(kept)
+        pages.append("\n".join(lines))
+    return "\n".join(pages)
+
+
 def load_source(path: Path) -> str:
     """Read the official document as flat text."""
     if path.suffix.lower() != ".pdf":
         return path.read_text(encoding="utf-8", errors="replace")
 
     try:
-        import fitz  # PyMuPDF
-
-        with fitz.open(path) as doc:
-            return "\n".join(page.get_text() for page in doc)
+        import pymupdf
     except ImportError:
-        pass
+        try:
+            import fitz as pymupdf  # PyMuPDF < 1.24 exposed itself as `fitz`
+        except ImportError:
+            pymupdf = None
+
+    if pymupdf is not None:
+        with pymupdf.open(path) as doc:
+            return _text_without_footnotes(doc)
 
     try:
         from pypdf import PdfReader
@@ -178,6 +241,17 @@ def load_source(path: Path) -> str:
             "Alternatively pass a plain-text --source."
         )
 
+    # pypdf is the fallback, not an equivalent. It exposes no font size, so
+    # footnotes cannot be separated from the body, and its extraction breaks
+    # words across line ends ("cross-examining" arriving as "cross examinin g")
+    # and renders the hyphens in "qatl-i-amd" as U+00AD, which the heading match
+    # does not treat as a hyphen. Both cost real matches: the Penal Code scored
+    # 11/15 under pypdf and 13/15 under PyMuPDF on identical text.
+    print(
+        "warning: reading with pypdf — install pymupdf for footnote separation "
+        "and accurate word breaks.",
+        file=sys.stderr,
+    )
     reader = PdfReader(str(path))
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
@@ -376,7 +450,11 @@ def report(statute: dict, findings: list[Finding], verbose: bool) -> None:
     print(
         "\nThis tool does not set `verified`. Read each flagged provision against\n"
         "the source, then edit data/statutes/*.json yourself and re-run\n"
-        "`pnpm run statutes:reindex`."
+        "`pnpm run statutes:reindex`.\n"
+        "\n"
+        'Mark a provision that matched with `"verified": true` on that section.\n'
+        "Only set it on the instrument once every provision in it has been\n"
+        "diffed — the instrument flag is the fallback, not a summary."
     )
 
 

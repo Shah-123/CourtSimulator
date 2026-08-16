@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Moon,
   Sun,
+  LogOut,
   BookOpen,
   Scale,
   ListOrdered,
@@ -10,6 +12,8 @@ import {
   PlayCircle,
   Gavel,
 } from "lucide-react";
+import { useLogOut } from "@workspace/api-client-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -43,6 +47,59 @@ function ThemeToggle() {
   );
 }
 
+/**
+ * Who the record belongs to, and the way out.
+ *
+ * Renders nothing when signed out, so the same Layout wraps the sign-in page
+ * without showing a name it does not have.
+ *
+ * Signing out clears the query cache and then reloads the page outright.
+ *
+ * Clearing alone was not enough and the failure was visible: the cookie went,
+ * the sign-out control went, and the previous student's Chambers page stayed on
+ * screen with their session still listed, because emptying the cache does not
+ * reliably push already-mounted observers back through the auth gate. On a
+ * shared university lab machine that is the exact leak this scoping exists to
+ * prevent, so logout does not depend on cache semantics — the next student gets
+ * a blank page and a fresh request.
+ */
+function SignedInAs() {
+  const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
+  const logOut = useLogOut({
+    mutation: {
+      onSettled: () => {
+        queryClient.clear();
+        window.location.assign(import.meta.env.BASE_URL || "/");
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return (
+    <div className="flex items-center gap-2 border-l border-rule pl-2">
+      {/* Held back to the widest breakpoint and kept on one line: at tablet
+          widths the name competed with the nav for the last of the row and
+          both wrapped, splitting "Ayesha Khan" across two lines in the
+          masthead. The sign-out control carries the meaning without it. */}
+      <span className="apparatus hidden whitespace-nowrap text-muted-foreground lg:inline">
+        {user.displayName}
+      </span>
+      <button
+        type="button"
+        onClick={() => logOut.mutate()}
+        disabled={logOut.isPending}
+        className="rounded-sm p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        aria-label="Sign out"
+        title="Sign out"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
 
@@ -56,6 +113,7 @@ export function Layout({ children }: { children: ReactNode }) {
             href="/"
             className="flex items-center gap-3 rounded-sm p-1 transition-opacity hover:opacity-90 group"
           >
+            {/* The name of the thing, in the language of the court it models. */}
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10 border border-primary/25 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200 shadow-sm">
               <span
                 aria-hidden="true"
@@ -66,7 +124,8 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-serif text-xl font-bold tracking-tight text-foreground">
+                {/* The name of the court is not a thing that wraps. */}
+                <span className="whitespace-nowrap font-serif text-xl font-bold tracking-tight text-foreground">
                   Adalat AI
                 </span>
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.625rem] font-mono uppercase tracking-wider text-primary border border-primary/20">
@@ -108,6 +167,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </nav>
 
             <ThemeToggle />
+            <SignedInAs />
           </div>
         </div>
 

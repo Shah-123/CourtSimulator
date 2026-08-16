@@ -1,10 +1,27 @@
 import express, { type ErrorRequestHandler, type Express } from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+// `req.ip` is the address of whoever opened the socket. Behind a reverse proxy —
+// including the Vite dev proxy — that is the proxy, so every request looks like
+// one client and the per-IP login limits collapse into a single shared bucket.
+//
+// Opt-in rather than on by default, because the failure runs the other way too:
+// trusting X-Forwarded-For when nothing upstream sets it lets any caller forge
+// an address per request and walk straight past those limits. Set TRUST_PROXY to
+// the number of proxies in front of this server (usually 1), or a subnet.
+const trustProxy = process.env["TRUST_PROXY"];
+if (trustProxy) {
+  app.set(
+    "trust proxy",
+    /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy,
+  );
+}
 
 app.use(
   pinoHttp({
@@ -25,7 +42,13 @@ app.use(
     },
   }),
 );
+// The session cookie is same-origin: the browser reaches the API through the
+// Vite proxy at /api, so credentials ride along without CORS being involved.
+// Leaving cors() at its default (no credentials, no allowlist) keeps it that
+// way — a cross-origin caller cannot send the cookie, which is the property
+// that makes the httpOnly cookie worth using in the first place.
 app.use(cors());
+app.use(cookieParser());
 
 // Spoken turns arrive as base64 audio inside JSON, which blows straight past
 // body-parser's 100kb default — a few seconds of speech already encodes to

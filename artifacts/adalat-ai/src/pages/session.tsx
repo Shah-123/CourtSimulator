@@ -514,6 +514,17 @@ export default function SessionPage({ id }: { id: string }) {
   );
 }
 
+/**
+ * One paragraph of the record.
+ *
+ * The provenance rail on the right is the point of the whole layout: every
+ * provision an agent leant on is shown beside the words it produced, with its
+ * verification state attached. The mark is per provision, not per instrument:
+ * one diffed against pakistancode.gov.pk reads Verified in seal green while
+ * one still under review reads Unverified in stamp red, even where both come
+ * from the same Act — which is exactly what a student needs to see before
+ * repeating any of it in a real courtroom.
+ */
 function RecordEntry({
   index,
   turn,

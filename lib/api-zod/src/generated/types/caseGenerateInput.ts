@@ -5,10 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AreaOfLaw } from './areaOfLaw';
 import type { Difficulty } from './difficulty';
+import type { DraftableAreaOfLaw } from './draftableAreaOfLaw';
 
 export interface CaseGenerateInput {
-  areaOfLaw: AreaOfLaw;
+  areaOfLaw: DraftableAreaOfLaw;
   difficulty: Difficulty;
 }

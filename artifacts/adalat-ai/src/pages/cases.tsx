@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AreaOfLaw,
+  DraftableAreaOfLaw,
   Difficulty,
   StudentSide,
   getListCasesQueryKey,
@@ -30,12 +30,10 @@ import {
 } from "@/components/ui/select";
 import {
   Loader2,
-  Plus,
   Search,
   BookOpen,
   Gavel,
   Users,
-  Scale,
   Sparkles,
   ArrowRight,
   ShieldCheck,
@@ -44,6 +42,8 @@ import { ApiErrorState, getErrorMessage } from "@/components/api-state";
 import { CaseBriefSheet } from "@/components/case-brief";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+const DRAFTABLE_AREAS = Object.values(DraftableAreaOfLaw);
 
 const DIFFICULTY_STEPS: Record<string, number> = {
   [Difficulty.Beginner]: 1,
@@ -92,6 +92,89 @@ function DifficultyMark({ difficulty }: { difficulty: string }) {
   );
 }
 
+/**
+ * A case name, set the way a law report sets it.
+ *
+ * The "v." between two parties is the most recognisable typographic form in
+ * law, and rendering it as ordinary text throws that away. Roman for the
+ * parties, small italic for the versus — a lawyer reads the shape before the
+ * words. Titles that carry no "v." (a writ petition, a reference) are left
+ * exactly as they are rather than forced into a form they do not have.
+ */
+function CaseName({ title }: { title: string }) {
+  const parts = title.split(/\s+v\.?\s+/);
+  if (parts.length !== 2) return <>{title}</>;
+
+  return (
+    <>
+      {parts[0]}{" "}
+      <span className="font-normal italic text-muted-foreground">v.</span>{" "}
+      {parts[1]}
+    </>
+  );
+}
+
+// A cause list counts its matters in words. Digits are for citations and
+// paragraph numbers, which is a distinction the apparatus already makes
+// elsewhere in the record.
+const COUNTS = [
+  "No", "One", "Two", "Three", "Four", "Five",
+  "Six", "Seven", "Eight", "Nine", "Ten",
+];
+
+/**
+ * The masthead of the day's cause list.
+ *
+ * A cause list is the sheet posted outside a Pakistani courtroom naming the
+ * matters to be called that day, and it is precisely what this page is — so it
+ * is set as one rather than as a dashboard header. The date is the sitting, the
+ * count is the list, and the double rule beneath is the one the printed sheet
+ * carries between its heading and its first entry.
+ */
+function CauseListMasthead({ count }: { count: number }) {
+  const sitting = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const listed = count <= 10 ? COUNTS[count] : String(count);
+
+  return (
+    <header className="border-b-[3px] border-double border-rule pb-7">
+      {/* The action sits on the heading line, not beside the standfirst. Left
+          to align with the paragraph it ended up floating in dead space beside
+          a three-line block, which read as a stray control rather than the
+          list's one affordance. */}
+      <div className="flex items-start justify-between gap-4">
+        <p className="apparatus flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-muted-foreground">
+          <span>Cause list</span>
+          {/* Dropped on narrow screens, where the line breaks after it and
+              leaves the separator dangling at the end of the first row. */}
+          <span aria-hidden="true" className="hidden sm:inline">
+            ·
+          </span>
+          <span>{sitting}</span>
+        </p>
+        <GenerateCaseDialog />
+      </div>
+
+      {/* Set lighter and larger than a UI heading would be: Newsreader's
+          optical sizing does the work at display size, and weight added on top
+          of it reads as shouting rather than as a masthead. */}
+      <h1 className="mt-4 max-w-3xl text-balance font-serif text-[2.5rem] font-normal leading-[0.98] tracking-[-0.022em] sm:text-5xl lg:text-[3.25rem]">
+        Matters listed before the bench
+      </h1>
+
+      <p className="mt-5 max-w-xl font-serif text-[1.0625rem] leading-relaxed text-foreground/80">
+        {listed} {count === 1 ? "matter is" : "matters are"} on the file. Choose
+        one and a side; you will argue it aloud against opposing counsel who
+        objects, before a bench that rules and marks you on the record.
+      </p>
+    </header>
+  );
+}
+
 export default function CasesPage() {
   const { data: cases, isLoading, isError, error, refetch } = useListCases();
   const [selectedArea, setSelectedArea] = useState<string>("ALL");
@@ -113,36 +196,27 @@ export default function CasesPage() {
     });
   }, [cases, selectedArea, searchQuery]);
 
-  const areas = ["ALL", ...Object.values(AreaOfLaw)];
+  // Derived from the matters actually on the file, not from the enum. The
+  // enum lists areas the corpus cannot ground — offering a filter for one
+  // would promise a body of law this system does not hold, which is the thing
+  // "Offer only the areas of law the corpus can ground" set out to stop. A
+  // pill only appears once a matter exists behind it.
+  const areas = useMemo(() => {
+    if (!Array.isArray(cases)) return ["ALL"];
+    return ["ALL", ...[...new Set(cases.map((c) => c.areaOfLaw))].sort()];
+  }, [cases]);
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Hero Section with Judicial Elevation */}
-      <div className="relative overflow-hidden rounded-sm border border-rule bg-gradient-to-br from-card via-card to-secondary/30 p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl space-y-2.5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-mono uppercase text-primary">
-              <Scale className="h-3.5 w-3.5" />
-              <span>Sovereign Advocacy Simulator</span>
-            </div>
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Case Library & Cause List
-            </h1>
-            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Select a matter, review the case brief and evidence on file, and take the rostrum.
-              You will argue aloud before an active Pakistani Bench that evaluates your statutory citations, handles objections, and delivers a recorded verdict.
-            </p>
-          </div>
+    <div className="space-y-8">
+      <CauseListMasthead count={Array.isArray(cases) ? cases.length : 0} />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <GenerateCaseDialog />
-          </div>
-        </div>
-
-        {/* Quick Search & Filter Controls */}
-        <div className="mt-8 flex flex-col gap-4 border-t border-rule/70 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-md">
+      {/* The list's controls sit under its masthead, not inside it: a cause
+          list is read before it is filtered, and a search box competing with
+          the heading would invert that. Hidden until there is enough on the
+          file to be worth narrowing. */}
+      {Array.isArray(cases) && cases.length > 3 && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -161,28 +235,32 @@ export default function CasesPage() {
             )}
           </div>
 
-          {/* Area of Law Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {areas.map((area) => {
-              const active = selectedArea === area;
-              return (
-                <button
-                  key={area}
-                  onClick={() => setSelectedArea(area)}
-                  className={cn(
-                    "apparatus px-2.5 py-1.5 rounded-sm transition-all text-[0.6875rem]",
-                    active
-                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                      : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground border border-rule/50",
-                  )}
-                >
-                  {area}
-                </button>
-              );
-            })}
-          </div>
+          {/* Only worth showing when there is more than one area to choose
+              between; today the file is criminal-only and a lone pill beside
+              "ALL" is a control with nothing to do. */}
+          {areas.length > 2 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {areas.map((area) => {
+                const active = selectedArea === area;
+                return (
+                  <button
+                    key={area}
+                    onClick={() => setSelectedArea(area)}
+                    className={cn(
+                      "apparatus rounded-sm px-2.5 py-1.5 text-[0.6875rem] transition-all",
+                      active
+                        ? "bg-primary font-semibold text-primary-foreground shadow-xs"
+                        : "border border-rule/50 bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    {area}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Case Grid / Error / Loading States */}
       {isError ? (
@@ -192,7 +270,7 @@ export default function CasesPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="h-64 animate-pulse rounded-sm border border-rule bg-card/60 p-5 space-y-4"
+              className="h-64 animate-pulse space-y-4 rounded-sm border border-rule bg-card/60 p-5"
             >
               <div className="h-4 w-24 bg-secondary" />
               <div className="h-6 w-3/4 bg-secondary" />
@@ -200,27 +278,40 @@ export default function CasesPage() {
             </div>
           ))}
         </div>
+      ) : !Array.isArray(cases) || cases.length === 0 ? (
+        /* Nothing on the file at all, which is a different thing from a filter
+           matching nothing and reads differently. The button lives in the
+           masthead, so this points at it rather than repeating it — an empty
+           screen should say what to do next, not offer the same control twice. */
+        <div className="border-b border-rule py-24 text-center">
+          <p className="font-serif text-2xl font-normal">The list is empty.</p>
+          <p className="mx-auto mt-3 max-w-sm font-serif leading-relaxed text-muted-foreground">
+            Draft a case and it is entered on the file, ready to be called.
+          </p>
+        </div>
       ) : filteredCases.length === 0 ? (
+        /* Matters exist, the filter hid them. Offering to clear the filter is
+           the useful action here; offering to draft another case is not. */
         <div className="rounded-sm border border-dashed border-rule bg-card/40 py-16 text-center">
           <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-3 font-serif text-xl font-medium">No matters found matching your search</p>
+          <p className="mt-3 font-serif text-xl font-medium">
+            No matter on the file answers to that.
+          </p>
           <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-            Try adjusting your search query or area of law filter, or draft a new case.
+            Every case is still listed — the search or the area filter is what
+            is hiding them.
           </p>
           <div className="mt-5 flex justify-center gap-3">
-            {searchQuery && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedArea("ALL");
-                }}
-              >
-                Reset filters
-              </Button>
-            )}
-            <GenerateCaseDialog />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedArea("ALL");
+              }}
+            >
+              Clear the filter
+            </Button>
           </div>
         </div>
       ) : (
@@ -247,8 +338,8 @@ function CaseCard({ courtCase }: { courtCase: Case }) {
         </div>
 
         {/* Case Title */}
-        <h2 className="font-serif text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
-          {courtCase.title}
+        <h2 className="font-serif text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+          <CaseName title={courtCase.title} />
         </h2>
 
         {/* Statutory Grounding Pills */}
@@ -302,7 +393,9 @@ function CaseCard({ courtCase }: { courtCase: Case }) {
 
 function GenerateCaseDialog() {
   const [isOpen, setIsOpen] = useState(false);
-  const [area, setArea] = useState<AreaOfLaw>(AreaOfLaw.Criminal);
+  const [area, setArea] = useState<DraftableAreaOfLaw>(
+    DraftableAreaOfLaw.Criminal,
+  );
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Beginner);
 
   return (
@@ -329,18 +422,35 @@ function GenerateCaseDialog() {
             <label htmlFor="area" className="apparatus text-muted-foreground">
               Area of Law
             </label>
-            <Select value={area} onValueChange={(v) => setArea(v as AreaOfLaw)}>
-              <SelectTrigger id="area" className="w-full">
-                <SelectValue placeholder="Choose an area" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(AreaOfLaw).map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* One draftable area today, so the control reads as a statement
+                rather than a choice — a select holding a single option asks a
+                question with one answer. Driven off the enum, so restoring a
+                second area brings the dropdown back with it. */}
+            {DRAFTABLE_AREAS.length > 1 ? (
+              <Select
+                value={area}
+                onValueChange={(v) => setArea(v as DraftableAreaOfLaw)}
+              >
+                <SelectTrigger id="area" className="w-full">
+                  <SelectValue placeholder="Choose an area" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DRAFTABLE_AREAS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p id="area" className="font-serif text-lg">
+                {area}
+              </p>
+            )}
+            {/* Said out loud rather than left for a student to discover. */}
+            <p className="apparatus text-muted-foreground">
+              The proceeding the corpus and the objection grounds both support.
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -388,7 +498,7 @@ function GenerateCaseButton({
   difficulty,
   onSuccess,
 }: {
-  area: AreaOfLaw;
+  area: DraftableAreaOfLaw;
   difficulty: Difficulty;
   onSuccess: () => void;
 }) {
