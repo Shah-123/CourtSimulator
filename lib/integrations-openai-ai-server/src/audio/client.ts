@@ -312,6 +312,8 @@ export async function speechToText(
   const response = await openai.audio.transcriptions.create({
     file,
     model: "whisper-1",
+    language: "en",
+    temperature: 0,
     ...(vocabulary ? { prompt: vocabulary } : {}),
   });
   return response.text;
@@ -326,6 +328,8 @@ export async function speechToTextStream(
   const stream = await openai.audio.transcriptions.create({
     file,
     model: "whisper-1",
+    language: "en",
+    temperature: 0,
     stream: true,
   });
 
