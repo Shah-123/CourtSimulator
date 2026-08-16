@@ -18,6 +18,8 @@
     "eval": "cd artifacts/ai-service && python -m eval.run_eval",
     "eval:courtroom": "cd artifacts/ai-service && python -m eval.courtroom_eval",
     "eval:redteam": "cd artifacts/ai-service && python -m eval.redteam_eval",
+    "eval:witness": "cd artifacts/ai-service && python -m eval.witness_eval",
+    "eval:ui": "cd artifacts/ai-service && python -m mlflow ui --backend-store-uri sqlite:///mlflow.db",
     "preinstall": "node ./scripts/preinstall.mjs",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",

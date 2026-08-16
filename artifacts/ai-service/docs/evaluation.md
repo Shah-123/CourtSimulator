@@ -26,6 +26,9 @@ the full agent graph once per scenario, so it costs minutes and real tokens wher
 the other two are comparatively cheap. Run it when agents, agent prompts or model
 routing change.
 
+Every run is recorded to MLflow — see [Run tracking](#run-tracking) — so a delta
+is something you look up rather than something you remember.
+
 ---
 
 ## Retrieval evaluation
@@ -363,6 +366,55 @@ something you can fool yourself with.
 
 ---
 
+## Run tracking
+
+Every eval entry point opens an MLflow run around itself
+([`eval/tracking.py`](../eval/tracking.py)). Nothing about how you run an eval
+changes; what changes is that the result stops being terminal scrollback.
+
+```bash
+pnpm run eval           # records a run named "retrieval+judge"
+pnpm run eval:ui        # http://localhost:5000 — compare runs
+```
+
+Each run carries three things:
+
+- **Metrics**, namespaced by section — `retrieval/hit_at_1`, `judge/discrimination`,
+  `courtroom/f1`, `witness/fabrication_rate`, `redteam/breaches` — plus the spend
+  and token counts that section incurred. (`hit@1` becomes `hit_at_1` because
+  MLflow rejects `@` in a metric key.)
+- **Params**: `model_text`, `model_fast`, `objection_cascade`, `reranker_backend`,
+  `rrf_k`, `model_embedding`, `embedding_dimensions`, corpus size, and the git
+  commit — with `git_dirty` recorded separately, because a dirty tree means the
+  commit does not describe the code that ran.
+- **The printed report** as `report.txt`. The metrics tell you hit@1 fell; only
+  the report tells you *which query missed*. Red-team runs additionally attach
+  `breaches.txt` with the transcript of anything that landed.
+
+Two deliberate choices:
+
+**It is optional and quiet about it.** `mlflow` is in the `eval` extra, not in
+the service dependencies — the AI service must not acquire a tracking library to
+serve a request. Without it the harness runs exactly as before and prints one
+line saying so. `ADALAT_MLFLOW=0` turns it off with mlflow installed.
+
+**Params are read from `get_settings()`, not passed in at the call site.** Same
+reasoning as `app/telemetry.py` wrapping the client rather than the eight call
+sites: the setting somebody forgets to log is the one that moved the metric.
+
+The store is SQLite at `artifacts/ai-service/mlflow.db` with artifacts under
+`mlartifacts/`, both gitignored — the runs are a record of one machine's evals,
+and the numbers worth keeping are the ones written down in this document. Set
+`MLFLOW_TRACKING_URI` to point at a server instead. (SQLite rather than the
+familiar `./mlruns` directory because MLflow 3 puts the file store in
+maintenance mode and refuses it by default.)
+
+Because the store is local and gitignored, **a fresh clone has no history**.
+This does not replace the recorded baselines below; it makes the next comparison
+cheap.
+
+---
+
 ## Notes
 
 - The judge eval makes real model calls (runs × transcripts × two calls each), so
@@ -372,6 +424,7 @@ something you can fool yourself with.
   small run-to-run movement in the reranked retrieval numbers is expected; the
   fusion-only numbers are deterministic given a fixed corpus.
 - The `eval` optional dependency group (`pip install -e ".[eval]"`) pulls in
-  RAGAS and datasets, available for adding answer-faithfulness and
-  context-relevance metrics on the generation side; the current harness uses
-  direct IR and judge metrics, which are more transparent for this system.
+  MLflow (used, see [Run tracking](#run-tracking)) plus RAGAS and datasets,
+  available for adding answer-faithfulness and context-relevance metrics on the
+  generation side; the current harness uses direct IR and judge metrics, which
+  are more transparent for this system.

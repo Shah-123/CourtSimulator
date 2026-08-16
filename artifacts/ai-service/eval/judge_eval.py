@@ -111,6 +111,35 @@ def _discrimination(results: list[TranscriptResult]) -> tuple[int, int]:
     return concordant, total
 
 
+def summarise(results: list[TranscriptResult]) -> dict[str, float]:
+    """The headline figures of one pass, for recording and for comparing runs.
+
+    Reliability is carried as *worst* spread rather than the mean, because the
+    claim being defended is that no transcript wanders — an average hides the
+    one that does.
+    """
+    if not results:
+        return {}
+    concordant, total = _discrimination(results)
+    summary: dict[str, float] = {
+        "worst_spread": max(r.spread for r in results),
+        "mean_stdev": statistics.mean([r.stdev for r in results]),
+        "discrimination": concordant / total if total else 0.0,
+        "failures": sum(r.failures for r in results),
+    }
+
+    strong = next((r for r in results if r.tier == "strong"), None)
+    weak = next((r for r in results if r.tier == "weak"), None)
+    if strong and weak and strong.overall_scores and weak.overall_scores:
+        summary["strong_weak_gap"] = strong.median_overall - weak.median_overall
+        for label, r in (("strong", strong), ("weak", weak)):
+            summary[f"{label}_overall"] = r.median_overall
+            accuracy = r.median_citation_accuracy
+            if accuracy is not None:
+                summary[f"{label}_citation_accuracy"] = accuracy
+    return summary
+
+
 def print_report(results: list[TranscriptResult], runs: int) -> None:
     print(f"\n=== Judge eval · {runs} runs per transcript ===\n")
     print(f"  {'transcript':<10} {'median':>7} {'spread':>7} {'stdev':>6} {'cite%':>6}  runs")

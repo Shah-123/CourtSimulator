@@ -38,6 +38,7 @@ from pathlib import Path
 from app.agents.state import AgentContext, TurnRequest
 from app.agents.witness import testify
 from app.telemetry import track
+from eval.tracking import tracked_run
 
 GOLD_PATH = Path(__file__).parent / "datasets" / "witness_scenarios.json"
 
@@ -235,17 +236,35 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    summaries: list[dict[str, float]] = []
-    with track() as ledger:
-        for run in range(args.runs):
-            if args.runs > 1:
-                print(f"\n### run {run + 1} of {args.runs}")
-            results = await evaluate_witness(args.limit, args.concurrency)
-            print_report(results)
-            summaries.append(summarise(results))
+    with tracked_run(
+        "witness",
+        params={
+            "runs": args.runs,
+            "limit": args.limit,
+            "concurrency": args.concurrency,
+        },
+    ) as recorder:
+        summaries: list[dict[str, float]] = []
+        with track() as ledger:
+            for run in range(args.runs):
+                if args.runs > 1:
+                    print(f"\n### run {run + 1} of {args.runs}")
+                results = await evaluate_witness(args.limit, args.concurrency)
+                print_report(results)
+                summaries.append(summarise(results))
 
-    print_stability(summaries)
-    print(f"\n  spend: ${ledger.cost:.4f} over {ledger.calls} call(s)")
+        print_stability(summaries)
+        print(f"\n  spend: ${ledger.cost:.4f} over {ledger.calls} call(s)")
+
+        # The mean across runs, for the same reason the courtroom records the
+        # mean: one run of a model call is an anecdote.
+        recorded = {
+            key: statistics.mean([s[key] for s in summaries if key in s])
+            for key in (summaries[0] if summaries else {})
+        }
+        recorded["cost_usd"] = ledger.cost
+        recorded["calls"] = ledger.calls
+        recorder.metrics("witness", recorded)
 
 
 if __name__ == "__main__":

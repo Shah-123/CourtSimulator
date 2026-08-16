@@ -20,6 +20,10 @@ __pycache__/
 venv/
 .ruff_cache/
 .pytest_cache/
+# MLflow's local run store. The runs are a record of this machine's evals, not
+# of the project — the numbers worth keeping are quoted in docs/evaluation.md.
+mlflow.db
+mlartifacts/
 
 # local environment and secrets
 .env
