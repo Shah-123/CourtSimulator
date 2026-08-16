@@ -216,6 +216,44 @@ export interface CourtroomTurnInput {
   utterance: string;
 }
 
+export interface CaseParty {
+  name: string;
+  role: string;
+  description: string;
+}
+
+/**
+ * One numbered fact, lettered ground, or itemised prayer.
+ */
+export interface BriefItem {
+  /**
+     * Assigned server-side ("1", "A", "a") so labels stay contiguous when
+     * an item is dropped by the citation audit.
+     */
+  label: string;
+  text: string;
+}
+
+/**
+ * The case as a filing would plead it. `summary` remains the short
+ * orientation paragraph; this is what the student argues from — grounds are
+ * the argument, prayer is the relief sought. Every ground's citations are
+ * audited against the statute corpus before the case is stored.
+ */
+export interface CaseBriefDetail {
+  /** @nullable */
+  court: string | null;
+  /** @nullable */
+  caseNumber: string | null;
+  /** @nullable */
+  jurisdictionInvoked: string | null;
+  petitioners: CaseParty[];
+  respondents: CaseParty[];
+  facts: BriefItem[];
+  grounds: BriefItem[];
+  prayer: BriefItem[];
+}
+
 export interface Case {
   id: number;
   title: string;
@@ -233,6 +271,12 @@ export interface Case {
      * corpus. Empty for library cases predating statute grounding.
      */
   citations: StatuteCitation[];
+  /**
+     * The pleading behind the case: numbered facts, lettered grounds, and
+     * the itemised prayer. Null for library cases and for cases generated
+     * before the brief existed.
+     */
+  brief: CaseBriefDetail | null;
   source: CaseSource;
   createdAt: string;
 }

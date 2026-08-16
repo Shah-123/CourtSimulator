@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus } from "lucide-react";
 import { ApiErrorState, getErrorMessage } from "@/components/api-state";
+import { CaseBriefSheet } from "@/components/case-brief";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -363,6 +364,8 @@ function ReviewCaseDialog({ courtCase }: { courtCase: Case }) {
               </p>
             </div>
           </section>
+
+          {courtCase.brief && <CaseBriefSheet brief={courtCase.brief} />}
 
           {Array.isArray(courtCase.witnesses) &&
             courtCase.witnesses.length > 0 && (

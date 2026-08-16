@@ -105,11 +105,48 @@ exists in the corpus (the catalogue is resolved from the statute book in
 by construction**. It is instructed to stay silent unless a ground clearly
 applies — an advocate who objects to everything is noise, not opposition.
 
+## What the agents know about the case
+
+Every agent prompt embeds `AgentContext.case_context()`
+([`state.py`](../app/agents/state.py)). It always carries the title, area,
+summary, applicable laws, which side the student is on, and the phase.
+
+When the case has a **brief** — a pleading with numbered facts, lettered grounds
+and an itemised prayer — three further blocks are appended:
+
+```
+Facts as pleaded:      1. …  2. …
+Grounds raised:        A. …  B. …
+Relief sought:         (a) … (b) …
+```
+
+The grounds are the point. They are the propositions the case stands on, so the
+bench and opposing counsel are told them outright instead of having to infer an
+argument from the summary — a student can now be pressed on a ground they
+actually pleaded.
+
+Two properties this design depends on:
+
+- **An absent brief renders byte-identical to the version that predated it.**
+  Library cases and everything generated before the brief existed carry
+  `brief = null`, and the courtroom must not behave differently for them.
+- **The lists are capped** (8 facts, 6 grounds, 5 prayer items, 400 characters
+  each, in [`casegen.py`](../app/casegen.py)). This block rides in every agent
+  call — the objection screen, the ruling, the testimony, the bench — so an
+  unbounded facts list would multiply the per-turn cost four ways.
+
 ## Grounding and trust
 
 Everything the agents say in a turn is run through the same citation audit used
 elsewhere: any provision cited that is absent from the corpus is flagged, not
 passed to the student as law. Grounding is not a guarantee, so it is checked.
+
+The same audit runs over a generated case *before* it is stored, and it now
+covers each ground's text as well as the `applicableLaws` string. A ground is
+prose that contains citations, so an invented section number inside one would
+otherwise reach a student as pleaded law with nothing checking it. Any ground
+citing a provision that does not exist is dropped, and a case with fewer than
+two grounds left standing is rejected rather than persisted thin.
 
 ## Verified traces
 

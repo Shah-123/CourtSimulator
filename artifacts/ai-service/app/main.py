@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from app import db
 from app.config import get_settings
 from app.rag.index import get_index, reload_index
+from app.routers import casegen as casegen_router
 from app.routers import courtroom as courtroom_router
 from app.routers import retrieval as retrieval_router
 from app.routers import verdict as verdict_router
@@ -52,6 +53,7 @@ app = FastAPI(
 app.include_router(retrieval_router.router)
 app.include_router(courtroom_router.router)
 app.include_router(verdict_router.router)
+app.include_router(casegen_router.router)
 
 
 @app.get("/healthz", tags=["health"])

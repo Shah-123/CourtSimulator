@@ -149,14 +149,11 @@ async function main() {
 
   const pending = [];
   let totalSections = 0;
-  let unverifiedInstruments = 0;
 
   for (const fileName of files) {
     const raw = await readFile(path.join(CORPUS_DIR, fileName), "utf8");
     const file = JSON.parse(raw);
     validateCorpusFile(file, fileName);
-
-    if (!file.verified) unverifiedInstruments++;
 
     for (const section of file.sections) {
       const citation = buildCitation(file, section.sectionNumber);
@@ -194,7 +191,14 @@ async function main() {
           section.chapter ?? null,
           section.content,
           file.sourceUrl ?? null,
-          Boolean(file.verified),
+          // Verification is per provision, not per statute. A file-level flag
+          // alone forces an all-or-nothing claim, and that is wrong in both
+          // directions: it either marks a provision verified because its
+          // neighbours were, or hides seven checked provisions behind one that
+          // is not. Constitution Art. 199 is the live example — its text is
+          // later than the National Assembly print the other seven were diffed
+          // against, so it cannot be confirmed from that source.
+          Boolean(section.verified ?? file.verified),
         ],
       );
 
@@ -236,7 +240,7 @@ async function main() {
     );
 
     console.log(
-      `  ${file.statuteCode.padEnd(12)} ${String(file.sections.length).padStart(3)} provisions${file.verified ? "" : "  (unverified source)"}${pruned > 0 ? `  — pruned ${pruned} stale` : ""}`,
+      `  ${file.statuteCode.padEnd(12)} ${String(file.sections.length).padStart(3)} provisions${file.sections.some((s) => s.verified === false) ? "  (has unverified provisions)" : ""}${pruned > 0 ? `  — pruned ${pruned} stale` : ""}`,
     );
   }
 
@@ -272,26 +276,33 @@ async function main() {
     SELECT statute_code,
            count(*)::int AS sections,
            count(embedding)::int AS embedded,
-           bool_and(verified) AS verified
+           count(*) FILTER (WHERE verified)::int AS verified
     FROM statute_sections
     GROUP BY statute_code
     ORDER BY statute_code
   `);
 
+  // Counted per provision rather than reduced with bool_and: an instrument with
+  // one unchecked article out of eight is not "unverified", and reporting it
+  // that way hides seven diffed provisions behind the one still outstanding.
   console.log("\nCorpus state:");
+  let unverifiedProvisions = 0;
   for (const row of summary) {
+    const outstanding = row.sections - row.verified;
+    unverifiedProvisions += outstanding;
     console.log(
-      `  ${row.statute_code.padEnd(12)} ${row.embedded}/${row.sections} embedded${row.verified ? "" : "  ⚠ unverified"}`,
+      `  ${row.statute_code.padEnd(12)} ${row.embedded}/${row.sections} embedded` +
+        `  ${row.verified}/${row.sections} verified${outstanding ? `  ⚠ ${outstanding} outstanding` : ""}`,
     );
   }
 
-  if (unverifiedInstruments > 0) {
+  if (unverifiedProvisions > 0) {
     console.log(
-      `\n⚠  ${unverifiedInstruments} instrument(s) are marked unverified.\n` +
+      `\n⚠  ${unverifiedProvisions} provision(s) are marked unverified.\n` +
         `   Their text has not been diffed against the official source, so the\n` +
         `   app will label anything retrieved from them as unverified rather\n` +
         `   than presenting it as authoritative law. Verify against\n` +
-        `   pakistancode.gov.pk, then set "verified": true in the corpus file.`,
+        `   pakistancode.gov.pk, then set "verified": true on that provision.`,
     );
   }
 }

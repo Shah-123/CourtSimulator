@@ -47,6 +47,33 @@ export const ListCasesResponseItem = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 })
@@ -83,6 +110,33 @@ export const GenerateCaseResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 })
@@ -117,6 +171,33 @@ export const GetCaseResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 })
@@ -178,6 +259,33 @@ export const CreateSessionResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),
@@ -256,6 +364,33 @@ export const GetSessionResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),
@@ -400,6 +535,33 @@ export const CallWitnessResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),
@@ -485,6 +647,33 @@ export const AdvanceSessionPhaseResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),
@@ -572,6 +761,33 @@ export const RaiseObjectionResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),
@@ -661,6 +877,33 @@ export const SendCourtroomTurnResponse = zod.object({
   "heading": zod.string(),
   "verified": zod.boolean().describe('True when the corpus text has been diffed against the official\nsource. False means the provision exists but its wording has not\nyet been authenticated.\n')
 }).describe('A provision confirmed to exist in the statute corpus.')).describe('Provisions this case is grounded in, resolved against the statute\ncorpus. Empty for library cases predating statute grounding.\n'),
+  "brief": zod.union([zod.object({
+  "court": zod.string().nullable(),
+  "caseNumber": zod.string().nullable(),
+  "jurisdictionInvoked": zod.string().nullable(),
+  "petitioners": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "respondents": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string(),
+  "description": zod.string()
+})),
+  "facts": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "grounds": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.')),
+  "prayer": zod.array(zod.object({
+  "label": zod.string().describe('Assigned server-side (\"1\", \"A\", \"a\") so labels stay contiguous when\nan item is dropped by the citation audit.\n'),
+  "text": zod.string()
+}).describe('One numbered fact, lettered ground, or itemised prayer.'))
+}).describe('The case as a filing would plead it. `summary` remains the short\norientation paragraph; this is what the student argues from — grounds are\nthe argument, prayer is the relief sought. Every ground\'s citations are\naudited against the statute corpus before the case is stored.\n'),zod.null()]).describe('The pleading behind the case: numbered facts, lettered grounds, and\nthe itemised prayer. Null for library cases and for cases generated\nbefore the brief existed.\n'),
   "source": zod.enum(['library', 'generated']),
   "createdAt": zod.coerce.date()
 }),

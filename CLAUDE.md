@@ -11,7 +11,7 @@ Two things decide whether this project succeeds:
 
 1. **It must be defensible.** Every subsystem should be explainable in one
    sentence *with a number attached*. "We rerank with an LLM" is a claim.
-   "Reranking moves hit@1 from 0.90 to 1.00 on a 20-query golden set, and a
+   "Reranking moves hit@1 from 0.80 to 1.00 on a 20-query golden set, and a
    general MS-MARCO cross-encoder dropped the governing provision from rank 2
    to rank 10" is a defence.
 2. **It must be honest about the law.** A tool that confidently misquotes a
@@ -38,12 +38,13 @@ dishonest product. If a task seems to require breaking one, stop and say so.
   `src/lib/ai-service.ts` for anything requiring a model.
 - **The browser never talks to the Python service.** Same-origin `/api/*` only.
   OpenAI credentials exist in the API and AI services, never in the web app.
-- *Known exceptions, do not treat as precedent:* case generation
-  (`routes/cases.ts`) and the manually-raised objection ruling
-  (`routes/sessions.ts`) still build prompts and call the model inside Express.
-  Moving that reasoning behind the AI service is pending work (§6), not a
-  pattern to copy. Transcription and speech synthesis are *not* exceptions —
-  they are voice transport, which Express owns.
+- *Known exception, do not treat as precedent:* the manually-raised objection
+  ruling (`routes/sessions.ts`) still builds a prompt and calls the model inside
+  Express. Moving that reasoning behind the AI service is pending work (§6), not
+  a pattern to copy. Case generation used to be a second exception and no longer
+  is — `routes/cases.ts` delegates to `POST /cases/generate`. Transcription and
+  speech synthesis are *not* exceptions — they are voice transport, which
+  Express owns.
 
 ### Schema ownership
 
@@ -91,9 +92,17 @@ dishonest product. If a task seems to require breaking one, stop and say so.
 
 The domain makes these stricter than normal engineering hygiene.
 
-- **All 53 provisions in `data/statutes/*.json` carry `"verified": false`.** The
-  text was written from model knowledge and has *not* been diffed against
-  pakistancode.gov.pk.
+- **52 of the 53 provisions in `data/statutes/*.json` are diffed word-for-word
+  against an official source and carry `"verified": true`.** QSO 1984 (20),
+  PPC 1860 (15) and CrPC 1898 (10) against the pakistancode.gov.pk prints;
+  Constitution 1973 (7 of 8) against the National Assembly print of 28 February
+  2012. The one exception is **Constitution Art. 199**, which carries a
+  per-provision `"verified": false` and a `verifiedNote`: its text is *later*
+  than that print — it refers to the Federal Constitutional Court and to clause
+  (1A) barring suo motu action — so it cannot be confirmed from that source and
+  needs a current one. Verification is per provision (`section.verified`
+  overrides the file-level flag in `scripts/ingest-statutes.mjs`); do not
+  collapse it back to a per-file claim.
 - The `[UNVERIFIED TEXT — do not quote verbatim as authoritative]` markers in
   prompt blocks and grounded responses (`app/rag/retrieval.py`,
   `app/agents/tools.py`) and the ⚠ badges in the UI **must never be stripped,
@@ -131,14 +140,18 @@ This repo already makes decisions on measurement. Preserve that standard.
   ```bash
   pnpm run eval:courtroom
   ```
-  Compare against the recorded baseline: fusion-only hit@1 0.90 / MRR 0.94;
-  reranked hit@1 1.00 / MRR 1.00; judge ranks strong 85 > mixed 55 > weak 28
-  with score stdev ~2 and citation accuracy 100% vs 0%; courtroom objection
-  decision precision 1.00 / recall 1.00 / F1 1.00 / specificity 1.00 over 32
-  scenarios, ground accuracy 100%, and 0 sustained-objection routing leaks;
+  Compare against the recorded baseline: fusion-only hit@1 0.80 / MRR 0.88
+  (0.90 / 0.94 before the corpus was corrected — restoring provisions to their
+  full official text gave the raw retrievers more competing prose, and the
+  reranker absorbed all of it); reranked hit@1 1.00 / MRR 1.00; judge ranks
+  strong 85-88 > mixed 55 > weak 28-30 with citation accuracy 100% vs 0%;
+  courtroom objection decision recall 1.00 and 0 sustained-objection routing
+  leaks, with precision / F1 / ground accuracy averaging 0.98-0.99 over 3 runs
+  (a single run often reads 1.00 — quote the mean, see `docs/evaluation.md`);
   cost $0.0095/turn with the cascade on ($0.0020 silent / $0.0153 objected);
-  red-team 0/36 attacks obeyed. **Report the numbers, including when they get
-  worse.**
+  red-team 0/36 attacks obeyed. `pnpm run eval` now prints its own spend per
+  section, so quote the figure it reports rather than estimating. **Report the
+  numbers, including when they get worse.**
 - **`agentFabricated`, not `hallucinated`, is what you show a student.** The raw
   audit cannot tell an agent relying on a fake provision from one naming it to
   reject it, so it flags the bench for correctly refusing a section the student
@@ -266,9 +279,11 @@ terms of `run_turn_stream` so the text and voice courtrooms cannot drift.
   objection → ruling → testimony sequence audibly, in distinct voices.
 - **Transcription latency (4.5s)** is now the largest block before first audio;
   `speechToText` is still `whisper-1`.
-- **Reasoning still in Express.** Case generation and the manual objection
-  ruling build prompts in `routes/cases.ts` / `routes/sessions.ts`; both belong
-  behind the AI service (see §1).
+- **Reasoning still in Express — one route left.** The manually-raised objection
+  ruling still builds a prompt and calls the model in `routes/sessions.ts`; it
+  belongs behind the AI service (see §1). Case generation has already moved:
+  `routes/cases.ts` now delegates to `POST /cases/generate`
+  (`app/routers/casegen.py` → `app/casegen.py`) and builds no prompt of its own.
 - **LLMOps (#7).** Cost and latency are now metered per call (`app/telemetry.py`)
   and reported by `eval:courtroom`. Still missing: tracing, CI, Docker, and
   surfacing cost per *session* in the app rather than only in the harness.
@@ -278,9 +293,13 @@ terms of `run_turn_stream` so the text and voice courtrooms cannot drift.
   `pnpm run eval:redteam` puts 36 attacks through the courtroom and the verdict
   scorer and 0 land, because opposing counsel objects to injected instructions
   as irrelevant. Build the guard when an attack lands, and add the attack first.
-- **Corpus verification (blocking for the demo).** Diff all 53 provisions
-  against pakistancode.gov.pk, flip `"verified": true`, then
-  `pnpm run statutes:reindex`.
+- **Corpus verification — done except one provision.** 52 of 53 are diffed
+  against their official source (§2). Outstanding: **Constitution Art. 199**,
+  which needs a print later than 28 February 2012. Get one, run
+  `python scripts/verify-statutes.py constitution-1973 --source <pdf>`, then set
+  `"verified": true` on that provision and `pnpm run statutes:reindex`.
+  `data/statutes/administrator9d8e2ecc*.pdf` is a second, differently-paginated
+  Constitution print already in the repo and is worth trying first.
 
 ---
 

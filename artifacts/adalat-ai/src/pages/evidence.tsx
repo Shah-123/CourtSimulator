@@ -1,5 +1,6 @@
 import {
   CORPUS,
+  CORPUS_CHECKED_ON,
   FINDINGS,
   MEASURED_ON,
   SECTIONS,
@@ -50,9 +51,19 @@ export default function EvidencePage() {
       <section className="mt-12 border border-stamp/30 bg-stamp-wash/40 p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="font-serif text-2xl">The statute corpus</h2>
-          <code className="apparatus text-muted-foreground">
-            {CORPUS.command}
-          </code>
+          <div className="flex items-center gap-3">
+            {/* Dated separately from the eval sections: this figure tracks the
+                statute files, not the code, so the page-level stamp would have
+                vouched for the wrong thing. */}
+            <FreshnessMark
+              freshness={CORPUS.freshness}
+              checkedOn={CORPUS_CHECKED_ON}
+              measuredTitle={`Counted against the per-provision flags in the statute files as they currently stand, ${CORPUS_CHECKED_ON}.`}
+            />
+            <code className="apparatus text-muted-foreground">
+              {CORPUS.command}
+            </code>
+          </div>
         </div>
 
         <p className="mt-1.5 font-serif text-[1.0625rem] tabular-nums">
@@ -112,18 +123,29 @@ export default function EvidencePage() {
   );
 }
 
-function FreshnessMark({ freshness }: { freshness: Freshness }) {
+function FreshnessMark({
+  freshness,
+  checkedOn,
+  measuredTitle,
+}: {
+  freshness: Freshness;
+  /** Shown beside the mark for a figure on its own clock, not the page stamp. */
+  checkedOn?: string;
+  /** What "measured" meant here, when it was not a run of the eval harness. */
+  measuredTitle?: string;
+}) {
   const isMeasured = freshness === "measured";
   return (
     <span
       className={cn("apparatus", isMeasured ? "text-seal" : "text-stamp")}
       title={
         isMeasured
-          ? "Re-run against the code as it currently stands."
+          ? (measuredTitle ?? "Re-run against the code as it currently stands.")
           : "Taken from the recorded results and not re-run for this build."
       }
     >
       {isMeasured ? "✓ re-run" : "⚠ not re-run"}
+      {isMeasured && checkedOn ? ` ${checkedOn}` : ""}
     </span>
   );
 }

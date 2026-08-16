@@ -36,6 +36,7 @@ import type { CourtReasoningStep } from "@workspace/api-client-react";
 import { ChevronRight, UserPlus, Loader2, Gavel } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiErrorState, getErrorMessage } from "@/components/api-state";
+import { CaseBriefArgument } from "@/components/case-brief";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -383,6 +384,9 @@ export default function SessionPage({ id }: { id: string }) {
             <p className="mt-2 font-serif text-[0.95rem] leading-relaxed text-foreground/85">
               {session.case.summary}
             </p>
+            {session.case.brief && (
+              <CaseBriefArgument brief={session.case.brief} />
+            )}
           </div>
         </aside>
       </div>

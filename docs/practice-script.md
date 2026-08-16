@@ -152,13 +152,32 @@ whose job is to object to improper questions.
 
 ### 3c. Look at a citation's provenance
 
-Open the **Object** dialog and pick any ground. Each one now reads
-**✓ verified** — the Qanun-e-Shahadat has been diffed word-for-word against the
-official text, all 20 provisions.
+Open the **Object** dialog and pick any ground. Every one reads **✓ verified**.
+Each ground rests on the Qanun-e-Shahadat or the Code of Criminal Procedure, and
+both have been diffed word-for-word against the official pakistancode.gov.pk
+text in full — QSO 20/20, CrPC 10/10, and the Penal Code 15/15 alongside them.
 
-Cite something from the Penal Code and it still reads **⚠ unverified**: 13 of 15
-provisions match, so the file stays flagged. The badge reads the corpus's own
-flag rather than assuming.
+To see the badge do the other thing, the ⚠ has moved — and to a better place
+than the Penal Code ever was. In a second tab, open the case library and read
+the brief for the seeded Constitutional case **Asma Bibi v. Board of Revenue**,
+whose applicable laws are *Constitution Art. 199 & Art. 25*. Art. 25 reads ✓.
+**Art. 199 reads ⚠**, and it is the only provision in the whole corpus that
+does. (Read the brief rather than starting a session — this is a detour, and
+Round 4 picks the criminal hearing back up where you left it.)
+
+That is worth pausing on. Art. 199 is not flagged because its text disagrees
+with the source — it is flagged because it is *later* than the source: it refers
+to the Federal Constitutional Court and to clause (1A) barring suo motu action,
+neither of which appears in the National Assembly print of 28 February 2012 the
+other seven articles were confirmed against. The provision carries a note saying
+exactly that.
+
+So the article every writ petition in Pakistan is filed under is the one the
+system declines to vouch for, standing beside seven verified neighbours in the
+same file. A file-level flag could not have produced that: it would have marked
+Art. 199 verified because its neighbours were, or hidden seven confirmed
+articles behind the one that is not. The badge reads the corpus's own
+per-provision flag rather than assuming.
 
 ---
 
@@ -189,7 +208,7 @@ legal-reasoning score fall.
 | Witness does **not** answer after a sustained objection | The graph is routing correctly; this is asserted, never a model opinion |
 | ReAct trace shows Arts. 137 **and** 136 **and** 138 | The bench read the exception, not just the rule |
 | Ground cited matches the ground named | The objection is reasoned, not scripted |
-| ⚠ on a Penal Code citation, ✓ on a QSO one | Provenance is reading the real flag |
+| ⚠ on Constitution Art. 199, ✓ on everything else | Provenance is reading the real per-provision flag |
 
 ## Honest limits
 

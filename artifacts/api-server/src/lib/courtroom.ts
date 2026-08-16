@@ -63,6 +63,37 @@ export function determineRespondingPersona(
 }
 
 /**
+ * The slice of the case record the courtroom agents receive.
+ *
+ * Four call sites need this payload — the text turn, the voice turn, an
+ * interjection, and the simulate script — and each used to build it by hand. A
+ * field added to three of the four is a silent divergence between the text and
+ * voice courtrooms, which is exactly what the AI service already guards against
+ * by defining `run_turn` in terms of `run_turn_stream`. This is the same guard,
+ * one step earlier, on the request.
+ */
+export function courtroomCaseBrief(courtCase: Case) {
+  return {
+    title: courtCase.title,
+    areaOfLaw: courtCase.areaOfLaw,
+    summary: courtCase.summary,
+    applicableLaws: courtCase.applicableLaws,
+    petitionerName: courtCase.petitionerName,
+    petitionerRole: courtCase.petitionerRole,
+    respondentName: courtCase.respondentName,
+    respondentRole: courtCase.respondentRole,
+    witnesses: courtCase.witnesses.map((w) => ({
+      name: w.name,
+      role: w.role,
+      statement: w.statement,
+    })),
+    // Null for library cases and anything generated before the brief existed.
+    // The agents render an absent brief identically to the old context string.
+    brief: courtCase.brief,
+  };
+}
+
+/**
  * The proper nouns this case is about, as a spelling hint for transcription.
  *
  * Whisper has no prior for Pakistani names and renders them phonetically —

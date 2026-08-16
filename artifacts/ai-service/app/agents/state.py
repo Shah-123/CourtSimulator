@@ -39,6 +39,40 @@ class WitnessBrief(BaseModel):
     statement: str
 
 
+class BriefItem(BaseModel):
+    """One numbered fact, lettered ground, or itemised prayer."""
+
+    model_config = _CAMEL
+    label: str
+    text: str
+
+
+class CaseParty(BaseModel):
+    model_config = _CAMEL
+    name: str
+    role: str
+    description: str = ""
+
+
+class CaseBriefDetail(BaseModel):
+    """The pleading behind a case: what is averred, argued, and asked for.
+
+    Optional throughout. Cases seeded into the library, and every case generated
+    before this existed, carry no brief — see ``case_context`` for why that has
+    to stay indistinguishable from the old behaviour.
+    """
+
+    model_config = _CAMEL
+    court: str | None = None
+    case_number: str | None = Field(default=None, alias="caseNumber")
+    jurisdiction_invoked: str | None = Field(default=None, alias="jurisdictionInvoked")
+    petitioners: list[CaseParty] = Field(default_factory=list)
+    respondents: list[CaseParty] = Field(default_factory=list)
+    facts: list[BriefItem] = Field(default_factory=list)
+    grounds: list[BriefItem] = Field(default_factory=list)
+    prayer: list[BriefItem] = Field(default_factory=list)
+
+
 class CaseBrief(BaseModel):
     model_config = _CAMEL
     title: str
@@ -50,6 +84,7 @@ class CaseBrief(BaseModel):
     respondent_name: str = Field(alias="respondentName")
     respondent_role: str = Field(alias="respondentRole")
     witnesses: list[WitnessBrief] = Field(default_factory=list)
+    brief: CaseBriefDetail | None = None
 
 
 class TurnBrief(BaseModel):
@@ -195,7 +230,7 @@ class AgentContext:
         opposing_party = (
             case.respondent_name if side == "petitioner" else case.petitioner_name
         )
-        return (
+        base = (
             f'Case: "{case.title}" ({case.area_of_law} matter under Pakistani law)\n'
             f"Summary: {case.summary}\n"
             f"Applicable laws: {case.applicable_laws}\n"
@@ -203,6 +238,34 @@ class AgentContext:
             f"opposing counsel represents {opposing_party}.\n"
             f"Current phase: {self.phase.replace('_', ' ')}."
         )
+
+        # A case with no brief renders byte-identical to the version that
+        # predated it. Every seeded library case is in that position, and the
+        # bench must not start behaving differently for them.
+        brief = case.brief
+        if brief is None:
+            return base
+
+        blocks = [base]
+        if brief.facts:
+            blocks.append(
+                "Facts as pleaded:\n"
+                + "\n".join(f"  {item.label}. {item.text}" for item in brief.facts)
+            )
+        if brief.grounds:
+            # The grounds are the argument the student has to defend, so the
+            # bench and opposing counsel are told them explicitly rather than
+            # having to infer them from the summary.
+            blocks.append(
+                "Grounds raised:\n"
+                + "\n".join(f"  {item.label}. {item.text}" for item in brief.grounds)
+            )
+        if brief.prayer:
+            blocks.append(
+                "Relief sought:\n"
+                + "\n".join(f"  ({item.label}) {item.text}" for item in brief.prayer)
+            )
+        return "\n\n".join(blocks)
 
 
 class CourtroomState(TypedDict, total=False):

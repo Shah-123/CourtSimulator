@@ -1,10 +1,12 @@
 """Diff the statute corpus against an official source document.
 
 Corpus provisions in ``data/statutes/*.json`` were written from model knowledge
-and all carry ``"verified": false``. Flipping that flag is a legal judgement, so
-this tool deliberately **never writes it** — it only puts the corpus text and
-the official text side by side, with the substantive word-level differences
-marked, so a human can make the call in seconds instead of minutes.
+and originally all carried ``"verified": false``; 52 of the 53 have since been
+read against an official source and flipped by hand. Flipping that flag is a
+legal judgement, so this tool deliberately **never writes it** — it only puts
+the corpus text and the official text side by side, with the substantive
+word-level differences marked, so a human can make the call in seconds instead
+of minutes.
 
 The expensive part of verification is not the decision, it is finding the
 passage and spotting a dropped clause in a wall of statutory prose. That is the
@@ -96,7 +98,9 @@ def is_apparatus(chunk: str) -> bool:
     # "constitution eighteenth amendment act 2010 act no x of 2010 s" and its
     # kin: an amendment citation names an instrument and a year and asserts no
     # legal proposition of its own.
-    if re.search(r"\bamendment\b|\brevival of the constitution\b", chunk, re.I):
+    if re.search(
+        r"\bamendment\b|\brevival of the constitution\b", chunk, re.IGNORECASE
+    ):
         return True
     # An amendment citation names an instrument and a year and says nothing
     # else; statutory text almost never reads that way.
@@ -336,8 +340,16 @@ def analyse(statute: dict, flat: str, window: int) -> list[Finding]:
 
 def report(statute: dict, findings: list[Finding], verbose: bool) -> None:
     code = statute["statuteCode"]
+    confirmed, outstanding = verification_state(statute)
+    sections = len(statute["sections"])
     print(f"\n{'=' * 78}\n{code} - {statute['statuteTitle']}")
-    print(f"corpus verified flag: {statute['verified']}")
+    # Counted per provision rather than printing the file-level flag. On a file
+    # carrying one outstanding article out of eight the flag alone reads True,
+    # which overstates the corpus in exactly the report meant to check it.
+    print(
+        f"corpus verified:      {confirmed}/{sections} provisions"
+        + (f"   ⚠ outstanding: {', '.join(outstanding)}" if outstanding else "")
+    )
     print(f"corpus sourceUrl:     {statute['sourceUrl']}\n{'=' * 78}\n")
 
     for f in findings:
@@ -492,6 +504,53 @@ def emit(statute: dict, flat: str, window: int) -> None:
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
 
+def verification_state(data: dict) -> tuple[int, list[str]]:
+    """Provisions confirmed in one corpus file, and the citations still outstanding.
+
+    Verification is **per provision**: ``section.verified`` overrides the
+    file-level flag, which is the same rule ``scripts/ingest-statutes.mjs``
+    writes to the database. Reducing a file to its own flag is wrong in both
+    directions — it either marks a provision verified because its neighbours
+    were, or hides seven checked provisions behind the one that is not.
+
+    That is not hypothetical: this listing printed ``verified=True`` for
+    constitution-1973 while Art. 199 carried ``"verified": false``, which read
+    as 53 of 53 and overstated the corpus by a provision.
+    """
+    unit = data.get("citationUnit", "")
+    outstanding = [
+        f"{unit}{section['sectionNumber']}"
+        for section in data["sections"]
+        if not bool(section.get("verified", data["verified"]))
+    ]
+    return len(data["sections"]) - len(outstanding), outstanding
+
+
+def list_corpus() -> None:
+    """Prints the per-provision verification state of every corpus file."""
+    print("Corpus files:")
+    total = 0
+    confirmed_total = 0
+    outstanding_all: list[str] = []
+
+    for path in sorted(CORPUS_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        sections = len(data["sections"])
+        confirmed, outstanding = verification_state(data)
+        total += sections
+        confirmed_total += confirmed
+        outstanding_all.extend(f"{path.stem} {cite}" for cite in outstanding)
+        print(
+            f"  {path.stem:24s} {sections:3d} provisions   "
+            f"{confirmed:>2d}/{sections:<2d} verified"
+            + (f"   ⚠ {len(outstanding)} outstanding" if outstanding else "")
+        )
+
+    print(f"\n{confirmed_total} of {total} provisions verified.")
+    if outstanding_all:
+        print("Outstanding: " + ", ".join(outstanding_all))
+
+
 def main() -> None:
     # Statutory PDFs carry typographic characters the Windows console codepage
     # cannot encode; without this the run dies partway through a report.
@@ -517,13 +576,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.list or not args.statute:
-        print("Corpus files:")
-        for path in sorted(CORPUS_DIR.glob("*.json")):
-            data = json.loads(path.read_text(encoding="utf-8"))
-            print(
-                f"  {path.stem:24s} {len(data['sections']):3d} provisions   "
-                f"verified={data['verified']}"
-            )
+        list_corpus()
         if not args.statute:
             return
 

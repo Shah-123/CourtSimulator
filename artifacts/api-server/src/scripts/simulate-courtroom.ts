@@ -22,7 +22,11 @@ import {
   type Turn,
 } from "@workspace/db";
 import { runCourtroomTurn, type CourtEvent } from "../lib/ai-service";
-import { isSessionPhase, isStudentSide } from "../lib/courtroom";
+import {
+  courtroomCaseBrief,
+  isSessionPhase,
+  isStudentSide,
+} from "../lib/courtroom";
 
 const args = process.argv.slice(2);
 
@@ -135,21 +139,7 @@ async function main() {
     phase,
     studentSide: session.studentSide,
     activeWitness,
-    case: {
-      title: courtCase.title,
-      areaOfLaw: courtCase.areaOfLaw,
-      summary: courtCase.summary,
-      applicableLaws: courtCase.applicableLaws,
-      petitionerName: courtCase.petitionerName,
-      petitionerRole: courtCase.petitionerRole,
-      respondentName: courtCase.respondentName,
-      respondentRole: courtCase.respondentRole,
-      witnesses: courtCase.witnesses.map((w) => ({
-        name: w.name,
-        role: w.role,
-        statement: w.statement,
-      })),
-    },
+    case: courtroomCaseBrief(courtCase),
     utterance,
     workingMemory,
   });

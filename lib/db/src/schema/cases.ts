@@ -25,6 +25,44 @@ export const statuteCitationSchema = z.object({
 
 export type StatuteCitation = z.infer<typeof statuteCitationSchema>;
 
+/** One numbered fact, lettered ground, or itemised prayer. */
+export const briefItemSchema = z.object({
+  /** Assigned server-side so labels stay contiguous when an item is dropped. */
+  label: z.string(),
+  text: z.string(),
+});
+
+export type BriefItem = z.infer<typeof briefItemSchema>;
+
+export const casePartySchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  description: z.string(),
+});
+
+export type CaseParty = z.infer<typeof casePartySchema>;
+
+/**
+ * The pleading behind a case: what is averred, argued, and asked for.
+ *
+ * `summary` stays the short orientation paragraph; this is the structure a
+ * student actually argues from — grounds are the argument, prayer is the relief.
+ * The scalar `petitionerName` / `respondentName` columns keep the lead party, so
+ * everything reading a case before this existed is unaffected.
+ */
+export const caseBriefSchema = z.object({
+  court: z.string().nullable(),
+  caseNumber: z.string().nullable(),
+  jurisdictionInvoked: z.string().nullable(),
+  petitioners: z.array(casePartySchema),
+  respondents: z.array(casePartySchema),
+  facts: z.array(briefItemSchema),
+  grounds: z.array(briefItemSchema),
+  prayer: z.array(briefItemSchema),
+});
+
+export type CaseBriefDetail = z.infer<typeof caseBriefSchema>;
+
 export const casesTable = pgTable("cases", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -46,6 +84,14 @@ export const casesTable = pgTable("cases", {
     .$type<StatuteCitation[]>()
     .notNull()
     .default([]),
+  /**
+   * Nullable with no default, deliberately. Library cases and every case
+   * generated before the brief existed genuinely have none, and `null` is the
+   * honest value for them — an empty-object default would claim a pleading that
+   * was never drafted. The agents' `case_context()` keys its unchanged-output
+   * path off exactly this being null.
+   */
+  brief: jsonb("brief").$type<CaseBriefDetail | null>(),
   source: text("source").notNull().default("library"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

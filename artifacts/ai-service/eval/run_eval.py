@@ -9,8 +9,14 @@
 
 The courtroom section is opt-in rather than part of the default run: it drives
 the full multi-agent graph once per scenario, so it costs minutes and real
-tokens where the other two are comparatively cheap. Run it when agents, agent
-prompts or model routing change — not on every push.
+tokens where the other two are cheaper. Run it when agents, agent prompts or
+model routing change — not on every push.
+
+Every section reports its own spend. The default gate is not free: reranking is
+an LLM call per query and the judge scores each transcript three times, so a
+full run is tens of gpt-4o calls. `--no-rerank --retrieval-only` costs only
+embeddings (fractions of a cent) and is the cheap way to sanity-check a corpus
+change before paying for the real thing.
 """
 
 from __future__ import annotations
@@ -20,12 +26,30 @@ import asyncio
 
 from app import db
 from app.rag.index import get_index
+from app.telemetry import track
 from eval.courtroom_eval import evaluate_courtroom
 from eval.courtroom_eval import print_report as print_courtroom
 from eval.judge_eval import evaluate_judge
 from eval.judge_eval import print_report as print_judge
 from eval.retrieval_eval import evaluate_retrieval
 from eval.retrieval_eval import print_report as print_retrieval
+
+
+def _print_spend(label: str, ledger) -> None:
+    """Reports what a section actually cost.
+
+    The courtroom section has always metered itself; this one did not, so the
+    only figure available for the fast gate was an estimate from call counts.
+    An eval whose price has to be guessed is one people avoid re-running, and
+    the whole standard here is that a number beats a guess.
+    """
+    if ledger.calls == 0:
+        return
+    print(
+        f"\n  {label} spend: ${ledger.cost:.4f} over {ledger.calls} calls"
+        f"  ({ledger.prompt_tokens:,} in / {ledger.completion_tokens:,} out)"
+    )
+    print(f"  by model: {ledger.by_model}")
 
 
 async def main() -> None:
@@ -46,12 +70,16 @@ async def main() -> None:
 
         if not args.judge_only and not args.courtroom_only:
             rerank = not args.no_rerank
-            results = await evaluate_retrieval(rerank=rerank)
+            with track() as ledger:
+                results = await evaluate_retrieval(rerank=rerank)
             print_retrieval(results, "reranked (LLM)" if rerank else "fusion only (RRF)")
+            _print_spend("retrieval", ledger)
 
         if not args.retrieval_only and not args.courtroom_only:
-            judge_results = await evaluate_judge(args.judge_runs)
+            with track() as ledger:
+                judge_results = await evaluate_judge(args.judge_runs)
             print_judge(judge_results, args.judge_runs)
+            _print_spend("judge", ledger)
 
         if args.courtroom or args.courtroom_only:
             court_results = await evaluate_courtroom(limit=args.courtroom_limit)

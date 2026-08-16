@@ -55,6 +55,7 @@ import {
   speechToText,
 } from "@workspace/integrations-openai-ai-server/audio";
 import {
+  courtroomCaseBrief,
   isSessionPhase,
   isStudentSide,
   isValidPhaseTransition,
@@ -299,21 +300,7 @@ router.post("/sessions/:id/voice-turns", async (req, res): Promise<void> => {
       phase,
       studentSide: session.studentSide,
       activeWitness,
-      case: {
-        title: courtCase.title,
-        areaOfLaw: courtCase.areaOfLaw,
-        summary: courtCase.summary,
-        applicableLaws: courtCase.applicableLaws,
-        petitionerName: courtCase.petitionerName,
-        petitionerRole: courtCase.petitionerRole,
-        respondentName: courtCase.respondentName,
-        respondentRole: courtCase.respondentRole,
-        witnesses: courtCase.witnesses.map((w) => ({
-          name: w.name,
-          role: w.role,
-          statement: w.statement,
-        })),
-      },
+      case: courtroomCaseBrief(courtCase),
       utterance: studentTranscript,
       workingMemory,
     })) {
@@ -506,21 +493,7 @@ router.post("/sessions/:id/interject", async (req, res): Promise<void> => {
       phase,
       studentSide: session.studentSide,
       activeWitness,
-      case: {
-        title: courtCase.title,
-        areaOfLaw: courtCase.areaOfLaw,
-        summary: courtCase.summary,
-        applicableLaws: courtCase.applicableLaws,
-        petitionerName: courtCase.petitionerName,
-        petitionerRole: courtCase.petitionerRole,
-        respondentName: courtCase.respondentName,
-        respondentRole: courtCase.respondentRole,
-        witnesses: courtCase.witnesses.map((w) => ({
-          name: w.name,
-          role: w.role,
-          statement: w.statement,
-        })),
-      },
+      case: courtroomCaseBrief(courtCase),
       utterance: studentTranscript,
       workingMemory: turns
         .filter((t) => t.phase === phase)
@@ -1057,21 +1030,7 @@ router.post("/sessions/:id/turn", async (req, res): Promise<void> => {
       phase,
       studentSide: session.studentSide,
       activeWitness,
-      case: {
-        title: courtCase.title,
-        areaOfLaw: courtCase.areaOfLaw,
-        summary: courtCase.summary,
-        applicableLaws: courtCase.applicableLaws,
-        petitionerName: courtCase.petitionerName,
-        petitionerRole: courtCase.petitionerRole,
-        respondentName: courtCase.respondentName,
-        respondentRole: courtCase.respondentRole,
-        witnesses: courtCase.witnesses.map((w) => ({
-          name: w.name,
-          role: w.role,
-          statement: w.statement,
-        })),
-      },
+      case: courtroomCaseBrief(courtCase),
       utterance,
       workingMemory,
     });

@@ -34,6 +34,17 @@ export interface Section {
 /** The date the "measured" sections were last actually run. */
 export const MEASURED_ON = "5 August 2026";
 
+/**
+ * The corpus block is checked on its own clock.
+ *
+ * Its figure does not come from the eval harness, so the page-level
+ * `MEASURED_ON` stamp does not cover it: the counts are read off the corpus's
+ * own per-provision `verified` flags, which move when the statute files move
+ * and not when the code does. Dating it with the eval runs would have claimed a
+ * currency it does not have — this figure was last stale by seven provisions.
+ */
+export const CORPUS_CHECKED_ON = "13 August 2026";
+
 export const SECTIONS: Section[] = [
   {
     id: "retrieval",
@@ -157,20 +168,26 @@ export const FINDINGS: Finding[] = [
 /** Corpus verification, stated plainly rather than claimed. */
 export const CORPUS = {
   command: "pnpm run statutes:verify",
+  // Read against the corpus files themselves on CORPUS_CHECKED_ON, not carried
+  // over from a doc. It is marked here for the same reason every section is:
+  // this figure is hand-transcribed from `data/statutes/*.json` rather than
+  // computed at runtime, so it can drift silently — and it did, sitting at 45
+  // of 53 for seven provisions after the corpus had moved on.
+  freshness: "measured" as Freshness,
   total: 53,
-  confirmed: 45,
-  // All four counts are against the same source set — the official PDFs from
-  // pakistancode.gov.pk. Mixing editions would make the total meaningless: the
-  // National Assembly's 2012 printing of the Constitution returns 5 of 8 where
-  // the pakistancode printing returns 2, because the two set their clause
-  // numbering differently. Which official edition you diff against is part of
-  // the claim, not an implementation detail.
+  confirmed: 52,
+  // Which official edition a provision was diffed against is part of the claim,
+  // not an implementation detail. Three instruments are against the
+  // pakistancode.gov.pk prints; the Constitution is against the National
+  // Assembly print of 28 February 2012. Art. 199 is the case that proves the
+  // distinction matters — it is the one provision that cannot be confirmed, not
+  // because the text disagrees with that print but because it post-dates it.
   statutes: [
     { code: "QSO 1984", confirmed: 20, total: 20 },
-    { code: "PPC 1860", confirmed: 13, total: 15 },
-    { code: "CrPC 1898", confirmed: 8, total: 10 },
-    { code: "Constitution 1973", confirmed: 4, total: 8 },
+    { code: "PPC 1860", confirmed: 15, total: 15 },
+    { code: "CrPC 1898", confirmed: 10, total: 10 },
+    { code: "Constitution 1973", confirmed: 7, total: 8 },
   ],
   note:
-    "Every provision was written from model knowledge and each has since been diffed word-for-word against the official pakistancode.gov.pk text, with the wording replaced from the source wherever the two disagreed. The Qanun-e-Shahadat — the instrument every objection in this courtroom rests on — matches the official text in full and is now marked verified, so its citations read ✓ rather than ⚠. The other three instruments still have eight provisions that differ; they stay flagged, and nothing in the app presents an unconfirmed provision as authoritative law. Six numbering errors were found on the way, including an objection ground that cited Art. 143 for a rule that lives in Art. 148.",
+    "Every provision was written from model knowledge and each has since been diffed word-for-word against an official source, with the wording replaced from the source wherever the two disagreed. The Qanun-e-Shahadat, the Penal Code and the Code of Criminal Procedure now match their pakistancode.gov.pk prints in full, so their citations read ✓ rather than ⚠. The single exception is Constitution Art. 199 — the article every writ petition is filed under. It is not flagged because the text disagrees with the source but because it is later than it: it refers to the Federal Constitutional Court and to clause (1A) barring suo motu action, neither of which appears in the National Assembly print of 28 February 2012, so that print cannot confirm it. It carries a per-provision flag with a note saying exactly that, and nothing in the app presents it as authoritative law. Verification is per provision rather than per file, so one unconfirmed article neither hides behind its seven verified neighbours nor drags them down with it. Six numbering errors were found on the way, including an objection ground that cited Art. 143 for a rule that lives in Art. 148.",
 };

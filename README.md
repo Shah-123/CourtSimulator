@@ -200,19 +200,33 @@ cross-examination → closing → verdict.**
   generated output.
 - **Keep OpenAI credentials out of the web app** — they are consumed only by the
   API and AI services.
-- **The statute corpus is partly verified — 45 of 53 provisions.** Every
-  provision was originally written from model knowledge, and each has since
-  been diffed word-for-word against the official
-  [pakistancode.gov.pk](https://pakistancode.gov.pk) text with
-  `pnpm run statutes:verify`, with the wording replaced from the source
-  wherever the two disagreed.
+- **The statute corpus is verified — 52 of 53 provisions.** Every provision was
+  originally written from model knowledge, and each has since been diffed
+  word-for-word against an official source with `pnpm run statutes:verify`, with
+  the wording replaced from the source wherever the two disagreed.
 
-  The **Qanun-e-Shahadat Order 1984 is verified in full** (20/20) and carries
-  `"verified": true` — it is the instrument every objection in the courtroom
-  rests on. The Penal Code (13/15), Criminal Procedure Code (8/10) and
-  Constitution (4/8) still have provisions that differ, so those three files
-  remain `"verified": false` and everything retrieved from them is labelled ⚠
-  in the interface.
+  **Qanun-e-Shahadat Order 1984 20/20, Pakistan Penal Code 15/15, Code of
+  Criminal Procedure 10/10** against the
+  [pakistancode.gov.pk](https://pakistancode.gov.pk) prints, and **Constitution
+  1973 7/8** against the National Assembly print of 28 February 2012.
+
+  **The exception is Constitution Art. 199**, and it is instructive: the corpus
+  text is *later* than that print — it refers to the Federal Constitutional
+  Court and to clause (1A) barring suo motu action — so the 2012 source cannot
+  confirm it. It carries a per-provision `"verified": false` with a note saying
+  why, and everything retrieved from it is labelled ⚠ in the interface. That is
+  the article every writ petition is filed under, so the gap is disclosed rather
+  than rounded away. Verification is **per provision**, not per statute: a
+  file-level flag would either have marked Art. 199 verified because its
+  neighbours were, or hidden seven diffed articles behind the one that is not.
+
+  The repair also found that three Constitution articles were not merely
+  unchecked but **corrupted**: Art. 4 had a paragraph of 1985 commencement
+  footnotes spliced inside clause (2), and Arts. 8 and 10 were truncated
+  mid-article — Art. 8 was missing the armed-forces exception, and Art. 10 the
+  entire preventive-detention regime a habeas petition turns on. A further 38
+  printed footnote anchors ("1Provided", "3Federal Constitutional Court") were
+  stripped across the corpus, without touching the law's own numbering.
 
   The exercise found six numbering errors, not just wrong wording: an objection
   ground cited QSO Art. 143 for a rule that lives in Art. 148, the whole
@@ -242,13 +256,27 @@ objection is spoken while the bench is still reading statute). Citation audit
 **Microphone capture and browser playback are still untested**; that needs a
 real device.
 
+Generated cases are drafted as **filings, not summaries**: a case now carries a
+brief with numbered facts, lettered grounds and an itemised prayer, and the
+courtroom agents read it — the bench presses the student on grounds they actually
+pleaded. Every ground's citations are audited against the corpus before the case
+is stored, and a ground resting on a provision that does not exist is dropped
+rather than taught. Generation itself moved out of the Express route and behind
+the AI service, so the only prompt left on the Node side is the manually-raised
+objection ruling.
+
 The web app presents a session as a **record of proceedings** rather than a chat
 log: numbered paragraphs, a ruled speaker column, and a provenance rail carrying
 every provision an agent relied on beside the words it produced. The rail reads
-the corpus's own `verified` flag, so a Qanun-e-Shahadat citation now reads
-✓ verified while one drawn from the three instruments still being checked reads
-⚠ — and a citation the corpus does not recognise is marked too, rather than
+the corpus's own `verified` flag per provision, so 52 of 53 now read ✓ verified
+while Constitution Art. 199 — the one provision whose source is out of date —
+reads ⚠, and a citation the corpus does not recognise is marked too, rather than
 passing silently.
+
+Note that a case stores its `citations` as a snapshot taken when it was
+generated, so cases drafted before the corpus was verified still show ⚠ against
+provisions that now read ✓. The live audit and the session provenance rail read
+the corpus directly and are correct; regenerate a case to refresh its snapshot.
 
 Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and
 security hardening (prompt-injection guards on transcribed speech, user

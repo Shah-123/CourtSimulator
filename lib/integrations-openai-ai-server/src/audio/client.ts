@@ -33,6 +33,20 @@ export const openai = new OpenAI({
 export type AudioFormat = "wav" | "mp3" | "webm" | "mp4" | "ogg" | "unknown";
 
 /**
+ * Containers the transcription endpoint reads as they are.
+ *
+ * Every format `detectAudioFormat` can name is on OpenAI's accepted list for
+ * `audio.transcriptions` (flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav,
+ * webm), so recognising a container is the same thing as being able to send it.
+ * Only `unknown` has to be transcoded.
+ *
+ * This is deliberately *not* the same set as `voiceChat`'s `inputFormat`: the
+ * chat-completions `input_audio` field really does take only wav and mp3, so
+ * widening that one would send a container the model cannot read.
+ */
+export type TranscribableFormat = Exclude<AudioFormat, "unknown">;
+
+/**
  * Detect audio format from buffer magic bytes.
  * Supports: WAV, MP3, WebM (Chrome/Firefox), MP4/M4A/MOV (Safari/iOS), OGG
  */
@@ -133,10 +147,27 @@ export async function convertToWav(audioBuffer: Buffer): Promise<Buffer> {
  */
 export async function ensureCompatibleFormat(
   audioBuffer: Buffer,
-): Promise<{ buffer: Buffer; format: "wav" | "mp3" }> {
+): Promise<{ buffer: Buffer; format: TranscribableFormat }> {
   const detected = detectAudioFormat(audioBuffer);
-  if (detected === "wav") return { buffer: audioBuffer, format: "wav" };
-  if (detected === "mp3") return { buffer: audioBuffer, format: "mp3" };
+
+  // A recognised container goes to the transcription endpoint untouched.
+  // Transcoding it would be redundant — the endpoint reads all of them — and
+  // it was worse than redundant in practice: this branch previously converted
+  // everything except wav and mp3, which meant every microphone turn shelled
+  // out to ffmpeg. Chrome's MediaRecorder emits webm and nothing else, so the
+  // one path a student actually uses depended on an external binary being
+  // installed on the presenting machine, while the synthesized-audio tests
+  // (wav/mp3) returned above it and never noticed. It also spent a transcode
+  // on the leg where transcription latency is already the largest block
+  // before the court speaks.
+  if (detected !== "unknown") {
+    return { buffer: audioBuffer, format: detected };
+  }
+
+  // Genuinely unrecognised bytes are still worth a try through ffmpeg: it
+  // reads far more containers than the magic-byte check names. This is now the
+  // only branch that needs ffmpeg on PATH, and reaching it means we could not
+  // identify the audio at all.
   const wavBuffer = await convertToWav(audioBuffer);
   return { buffer: wavBuffer, format: "wav" };
 }
@@ -274,7 +305,7 @@ export async function textToSpeechStream(
  */
 export async function speechToText(
   audioBuffer: Buffer,
-  format: "wav" | "mp3" | "webm" = "wav",
+  format: TranscribableFormat = "wav",
   vocabulary?: string,
 ): Promise<string> {
   const file = await toFile(audioBuffer, `audio.${format}`);
@@ -289,7 +320,7 @@ export async function speechToText(
 /** Streaming Speech-to-Text. */
 export async function speechToTextStream(
   audioBuffer: Buffer,
-  format: "wav" | "mp3" | "webm" = "wav",
+  format: TranscribableFormat = "wav",
 ): Promise<AsyncIterable<string>> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   const stream = await openai.audio.transcriptions.create({

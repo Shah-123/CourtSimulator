@@ -799,6 +799,14 @@ components:
             corpus. Empty for library cases predating statute grounding.
           items:
             $ref: "#/components/schemas/StatuteCitation"
+        brief:
+          description: |
+            The pleading behind the case: numbered facts, lettered grounds, and
+            the itemised prayer. Null for library cases and for cases generated
+            before the brief existed.
+          oneOf:
+            - $ref: "#/components/schemas/CaseBriefDetail"
+            - type: "null"
         source:
           $ref: "#/components/schemas/CaseSource"
         createdAt:
@@ -817,8 +825,82 @@ components:
         - respondentRole
         - witnesses
         - citations
+        - brief
         - source
         - createdAt
+
+    BriefItem:
+      type: object
+      description: One numbered fact, lettered ground, or itemised prayer.
+      properties:
+        label:
+          type: string
+          description: |
+            Assigned server-side ("1", "A", "a") so labels stay contiguous when
+            an item is dropped by the citation audit.
+        text:
+          type: string
+      required:
+        - label
+        - text
+
+    CaseParty:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - role
+        - description
+
+    CaseBriefDetail:
+      type: object
+      description: |
+        The case as a filing would plead it. `summary` remains the short
+        orientation paragraph; this is what the student argues from — grounds are
+        the argument, prayer is the relief sought. Every ground's citations are
+        audited against the statute corpus before the case is stored.
+      properties:
+        court:
+          type: ["string", "null"]
+        caseNumber:
+          type: ["string", "null"]
+        jurisdictionInvoked:
+          type: ["string", "null"]
+        petitioners:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseParty"
+        respondents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseParty"
+        facts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BriefItem"
+        grounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/BriefItem"
+        prayer:
+          type: array
+          items:
+            $ref: "#/components/schemas/BriefItem"
+      required:
+        - court
+        - caseNumber
+        - jurisdictionInvoked
+        - petitioners
+        - respondents
+        - facts
+        - grounds
+        - prayer
     CaseGenerateInput:
       type: object
       properties:

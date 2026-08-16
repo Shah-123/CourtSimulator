@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AreaOfLaw } from './areaOfLaw';
+import type { CaseBriefDetail } from './caseBriefDetail';
 import type { CaseSource } from './caseSource';
 import type { Difficulty } from './difficulty';
 import type { StatuteCitation } from './statuteCitation';
@@ -28,6 +29,12 @@ export interface Case {
      * corpus. Empty for library cases predating statute grounding.
      */
   citations: StatuteCitation[];
+  /**
+     * The pleading behind the case: numbered facts, lettered grounds, and
+     * the itemised prayer. Null for library cases and for cases generated
+     * before the brief existed.
+     */
+  brief: CaseBriefDetail | null;
   source: CaseSource;
   createdAt: Date;
 }

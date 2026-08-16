@@ -52,18 +52,23 @@ standard IR pair: **hit@k** (an expected citation is in the top k) and **MRR**
 "Corpus repair" below — fusion got worse, reranked did not.)*
 
 The reranker's contribution is exactly what the design predicted: fusion already
-puts every governing provision in the top 3, and the reranker promotes the two
-semantic near-misses (hearsay 2→1, leading-question 3→1) to rank 1, taking hit@1
-from 0.90 to 1.00. This is the empirical basis for defaulting reranking on — and
+puts every governing provision in the top 3, and the reranker promotes the four
+semantic near-misses (hearsay 2→1, leading-question-in-chief 3→1, impeaching
+credit 2→1, murder punishment 3→1) to rank 1, taking hit@1 from 0.80 to 1.00.
+This is the empirical basis for defaulting reranking on — and
 for *not* using a general-purpose cross-encoder, which
 [`docs/retrieval.md`](retrieval.md) shows made ranking worse on this corpus.
 
-**Corpus repair.** 45 of the 53 provisions have since been replaced with the
-official text and re-embedded. Retrieval held at **hit@1 1.00 / MRR 1.00**
-across all three re-runs — after PPC s.34 and s.375 were repaired, and again
-after the full rewrite. `common_intention` still returns PPC s.34 at rank 1 with
-its case-law commentary stripped out, and `secondary_evidence` returns the
-renumbered Arts. 76 and 74.
+**Corpus repair.** 45 of the 53 provisions had been replaced with the official
+text and re-embedded as of the rewrite these re-runs were measured across; a
+later Constitution round repaired more (see the README). That is a count of
+provisions whose *text was replaced*, which is not the same quantity as the
+verification figure — 52 of 53 provisions are now confirmed against an official
+source, the exception being Constitution Art. 199. Retrieval held at
+**hit@1 1.00 / MRR 1.00** across all three re-runs — after PPC s.34 and s.375
+were repaired, and again after the full rewrite. `common_intention` still
+returns PPC s.34 at rank 1 with its case-law commentary stripped out, and
+`secondary_evidence` returns the renumbered Arts. 76 and 74.
 
 That the reranked score never moved is the point worth stating carefully:
 retrieval was 1.00 before the corpus was correct and 1.00 after. The metric
@@ -193,13 +198,56 @@ removed both false positives without costing any recall.
 **The ruling figure is single-run and noisy.** It moved 94% → 89% across the two
 runs above, and the judge prompt was not touched between them — the bench is a
 separate model call, and it moves. Use `--runs 3` and quote the mean before
-putting a ruling number in front of anyone. The objection-decision F1 is solid by
-contrast: 32/32 correct decisions is not a coin landing the same way twice.
+putting a ruling number in front of anyone.
+
+**And the decision figure is noisier than one run suggests.** A later `--runs 3`
+pass, with no agent or prompt change between runs, gave:
+
+| metric | mean | min | max | spread |
+| --- | --- | --- | --- | --- |
+| recall | 1.00 | 1.00 | 1.00 | 0.00 |
+| f1 | 0.99 | 0.97 | 1.00 | 0.03 |
+| precision | 0.98 | 0.95 | 1.00 | 0.05 |
+| ground | 0.98 | 0.95 | 1.00 | 0.05 |
+| ruling | 0.95 | 0.94 | 0.95 | 0.00 |
+
+One of those three runs *was* 32/32 — which is exactly the trap. **Recall and the
+sustained-objection invariant are the solid numbers**: opposing counsel has never
+missed an objection it should have raised, and the routing has never leaked.
+Precision drifts by one scenario between runs, so quote 0.98 mean over 3 runs,
+not the 1.00 a lucky single run produces.
 
 One invariant is asserted rather than scored: **a sustained objection must stop
 the witness answering.** That is the routing the whole multi-agent design exists
 to produce, so a violation is a graph bug rather than a model opinion. 0 across
-all 32 scenarios, both runs.
+all 32 scenarios, every run.
+
+### What this eval does not measure: the case brief
+
+`objection_scenarios.json` carries a case with **no `brief`**, so
+`case_context()` renders for it exactly as it did before briefs existed. That
+makes this suite a *regression check* for the brief — it shows a briefless case
+is unaffected — and **not** a measurement of what the brief costs or how it
+changes agent behaviour. Do not cite these numbers as evidence for either.
+
+What is measured, deterministically rather than by sampling: counting a real
+generated brief (4 facts, 3 grounds, 3 prayer items) with `tiktoken` against the
+same case without one, `case_context()` grows **158 → 465 tokens, +307 per agent
+call that embeds it**. Applying the pinned prices in `telemetry.py`:
+
+| | recorded | with a brief | |
+| --- | --- | --- | --- |
+| silent turn | $0.0020 | $0.0020 | +2.3% — the screen runs on `model_fast` |
+| objected turn | $0.0153 | $0.0169–$0.0184 | +10–20%, depending on ReAct rounds |
+
+The silent turn — the common case, and the one the voice session waits on — is
+effectively unchanged because the cascade puts that call on `gpt-4o-mini`. The
+objected turn pays for the brief across several `gpt-4o` calls.
+
+That is arithmetic over a measured token count, not an observed figure. **To make
+it an observed one, add a brief to the fixture case and re-run** — which will also
+move the recorded baseline, so it should be a deliberate change with its own
+before/after, not a silent edit.
 
 ### Cost, and the objection cascade
 
