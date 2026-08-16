@@ -10,7 +10,8 @@
     "capture-demo": "tsx src/scripts/capture-demo.ts",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "voice-demo": "tsx src/scripts/voice-demo.ts"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",

@@ -14,6 +14,7 @@
     "statutes:verify": "python ./scripts/verify-statutes.py",
     "simulate-courtroom": "pnpm --filter @workspace/api-server run simulate-courtroom",
     "capture-demo": "pnpm --filter @workspace/api-server run capture-demo",
+    "voice-demo": "pnpm --filter @workspace/api-server run voice-demo",
     "simulate-turn": "pnpm --filter @workspace/api-server run simulate-turn",
     "eval": "cd artifacts/ai-service && python -m eval.run_eval",
     "eval:courtroom": "cd artifacts/ai-service && python -m eval.courtroom_eval",
