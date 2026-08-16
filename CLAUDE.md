@@ -284,9 +284,14 @@ terms of `run_turn_stream` so the text and voice courtrooms cannot drift.
   belongs behind the AI service (see §1). Case generation has already moved:
   `routes/cases.ts` now delegates to `POST /cases/generate`
   (`app/routers/casegen.py` → `app/casegen.py`) and builds no prompt of its own.
-- **LLMOps (#7).** Cost and latency are now metered per call (`app/telemetry.py`)
-  and reported by `eval:courtroom`. Still missing: tracing, CI, Docker, and
-  surfacing cost per *session* in the app rather than only in the harness.
+- **LLMOps (#7).** Cost and latency are metered per call (`app/telemetry.py`)
+  and reported by `eval:courtroom`. Every eval run is now recorded to MLflow
+  (`eval/tracking.py` — metrics, the settings and commit that produced them, and
+  the printed report as an artifact; `pnpm run eval:ui` to compare). The store is
+  local SQLite and gitignored, so a fresh clone has no history and the recorded
+  baselines in `docs/evaluation.md` remain the thing to quote. Still missing:
+  per-call tracing, CI, Docker, and surfacing cost per *session* in the app
+  rather than only in the harness.
 - **Security & contract fixes (#8).** User scoping (there is no auth yet and the
   dashboard is global); reconcile stale model claims against actual code
   defaults. The prompt-injection guard is **deliberately not built**:

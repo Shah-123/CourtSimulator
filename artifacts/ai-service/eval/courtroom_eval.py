@@ -39,6 +39,7 @@ from app import db
 from app.agents import TurnRequest, run_turn
 from app.config import get_settings
 from app.telemetry import track
+from eval.tracking import tracked_run
 
 GOLD_PATH = Path(__file__).parent / "datasets" / "objection_scenarios.json"
 
@@ -400,14 +401,38 @@ async def main() -> None:
 
     await db.init_pool()
     try:
-        summaries: list[dict[str, float]] = []
-        for run in range(args.runs):
-            results = await evaluate_courtroom(args.limit, args.concurrency)
-            if run == 0:
-                print_report(results)
-            summaries.append(summarise(results))
-        if args.runs > 1:
-            print_stability(summaries)
+        with tracked_run(
+            "courtroom",
+            params={
+                "runs": args.runs,
+                "limit": args.limit,
+                "concurrency": args.concurrency,
+                "objection_cascade": get_settings().objection_cascade,
+            },
+        ) as recorder:
+            summaries: list[dict[str, float]] = []
+            costs: list[float] = []
+            for run in range(args.runs):
+                results = await evaluate_courtroom(args.limit, args.concurrency)
+                if run == 0:
+                    print_report(results)
+                summaries.append(summarise(results))
+                scored = [r for r in results if r.error is None]
+                costs.append(sum(r.cost for r in scored) / len(scored) if scored else 0)
+            if args.runs > 1:
+                print_stability(summaries)
+
+            # The mean across runs, not the last one: ruling accuracy moves
+            # between identical runs and `CLAUDE.md` requires the mean be what
+            # is quoted. Recording anything else would put a number in the
+            # tracker that nobody is allowed to cite.
+            recorded = {
+                key: statistics.mean([s[key] for s in summaries])
+                for key in (summaries[0] if summaries else {})
+            }
+            if costs:
+                recorded["cost_per_turn_usd"] = statistics.mean(costs)
+            recorder.metrics("courtroom", recorded)
     finally:
         await db.close_pool()
 
