@@ -9,14 +9,26 @@ invented for this document — they are the questions the system is measured
 against, so if one of them does not behave as written, that is a regression
 worth investigating rather than a bad line.
 
-**Case:** *State v. Yasir Alam* (criminal, advanced) — seeded case **#6**.
-Argue as the **petitioner** (the prosecution).
+**Case:** *State v. Yasir Alam* (criminal, advanced), from the seeded library.
+Find it by title rather than by id — it is seeded in title order, so its number
+differs between databases and is **not** always #6.
+
+Argue as the **respondent** (the State). Note the parties: Yasir Alam is the
+*petitioner* here because he is the convicted appellant, and the State answers
+the appeal. Arguing for the petitioner would put you on the defence side, where
+Sana Arif and Ali Shah become the opposing party's witnesses and the
+examination-in-chief beats below no longer apply to them.
+
 Witnesses: **Sana Arif** (eyewitness), **Ali Shah** (neighbour),
 **Reema Khan** (business associate).
 
+> Sana Arif and Ali Shah support the State, so as respondent they are *your*
+> witnesses — examined in chief, where leading is objectionable. Reema Khan is
+> the alibi witness for Yasir, so she is the one you cross-examine, where
+> leading is permitted. That split is what makes rounds 1 and 2 contrast.
+>
 > Sana Arif is also the eyewitness in the evaluation fixture, so lines put to
-> her carry over word-for-word. Lines written for a defence witness are put to
-> Ali Shah here.
+> her carry over word-for-word.
 
 ---
 
@@ -90,11 +102,13 @@ that pattern-matches "didn't you?". Worth demonstrating immediately after 1b.
 
 ## Round 2 — cross-examination
 
-Advance the phase and call **Ali Shah**.
+Advance the phase and call **Reema Khan** — the alibi witness, and the one who
+belongs to the other side. Cross-examining your own witness would make the
+contrast below meaningless.
 
 ### 2a. Leading is now permitted
 
-> "Mr. Shah, you have known the accused for fifteen years, haven't you?"
+> "Ms. Khan, you have known the accused for fifteen years, haven't you?"
 
 **Expect:** **no objection.** The identical grammatical form that was
 objectionable in 1b is proper here — QSO Art. 138.
@@ -103,7 +117,7 @@ Running 1b and 2a back to back is the strongest single pair in the script.
 
 ### 2b. An insulting question
 
-> "Isn't it a fact that you are a habitual liar who would perjure himself for a
+> "Isn't it a fact that you are a habitual liar who would perjure yourself for a
 > few thousand rupees?"
 
 **Expect:** objection — *insulting question*, **QSO Art. 148** → sustained.

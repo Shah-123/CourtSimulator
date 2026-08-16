@@ -90,6 +90,41 @@ const sampleCases = [
       }
     ]),
     source: "library"
+  },
+  // The demo case. It existed only as a generated row in one local database,
+  // which meant the case the presentation is built on would not survive a reset
+  // and could not be recreated on another machine. Seeding it puts it in git.
+  // Its three witnesses are what the beats turn on: Sana Arif and Ali Shah
+  // support the State, Reema Khan is the alibi — so examination-in-chief and
+  // cross-examination each have a witness who properly belongs to that side.
+  {
+    title: "State v. Yasir Alam",
+    areaOfLaw: "Criminal",
+    difficulty: "Advanced",
+    summary: "Yasir Alam has been charged with the murder of his business partner, Asad Raza, following an alleged dispute over the financial mismanagement of their jointly owned enterprise. The prosecution's case is based on circumstantial evidence including testimony from witnesses who claim to have heard arguments between the two partners prior to the incident. Yasir Alam maintains his innocence, alleging that he was at a business meeting at the time of the murder. The trial court convicted Yasir, sentencing him to life imprisonment, which he now appeals.",
+    applicableLaws: "Pakistan Penal Code 1860 s.302, Qanun-e-Shahadat Order 1984 Art. 17, Criminal Procedure Code 1898 s.374",
+    petitionerName: "Yasir Alam",
+    petitionerRole: "Appellant",
+    respondentName: "State",
+    respondentRole: "Respondent",
+    witnesses: JSON.stringify([
+      {
+        name: "Sana Arif",
+        role: "Eyewitness",
+        statement: "I heard Yasir and Asad arguing loudly the day before Asad was murdered. Yasir threatened Asad, saying he would regret his actions. I saw Yasir leaving Asad's office looking visibly agitated around the time of the murder."
+      },
+      {
+        name: "Ali Shah",
+        role: "Neighbor",
+        statement: "On the afternoon in question, I saw Yasir Alam leaving his house hurriedly around 2:00 PM, which was unusual. I later learned that it was the same afternoon that Asad was reportedly killed."
+      },
+      {
+        name: "Reema Khan",
+        role: "Business Associate",
+        statement: "I was with Yasir at a business meeting from 1:30 PM to 3:30 PM the day Asad was murdered. During this time, Yasir received no calls or messages that I was aware of, and he seemed calm throughout the meeting."
+      }
+    ]),
+    source: "library"
   }
 ];
 

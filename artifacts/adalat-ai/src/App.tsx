@@ -7,6 +7,7 @@ import { Layout } from './components/layout';
 
 import CasesPage from './pages/cases';
 import DashboardPage from './pages/dashboard';
+import DemoPage from './pages/demo';
 import EvidencePage from './pages/evidence';
 import HistoryPage from './pages/history';
 import SessionPage from './pages/session';
@@ -28,6 +29,11 @@ function Router() {
       </Route>
       <Route path="/evidence">
         <Layout><EvidencePage /></Layout>
+      </Route>
+      {/* Recorded run. Its own route, never a mode on /sessions/:id, so a
+          replay cannot be mistaken for a live hearing. */}
+      <Route path="/recorded">
+        <Layout><DemoPage /></Layout>
       </Route>
       <Route path="/sessions/:id">
         {params => <Layout><SessionPage id={params.id} /></Layout>}
