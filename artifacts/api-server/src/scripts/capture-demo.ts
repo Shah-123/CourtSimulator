@@ -16,6 +16,9 @@
  * OpenAI account needs credit — this makes real model calls, roughly $0.10 for
  * the full run.
  *
+ * Sessions are scoped to the student who argued them, so this signs in first
+ * and carries the cookie. Set DEMO_EMAIL and DEMO_PASSWORD; see `signIn`.
+ *
  * Deliberately uses the *text* turn endpoint rather than the voice one:
  * `run_turn` is defined in terms of `run_turn_stream`
  * (app/agents/graph.py), so the two cannot drift, and capturing without audio
@@ -27,6 +30,16 @@ import { fileURLToPath } from "url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "../../../..");
+
+// The workspace keeps one .env at the root, read by all three services. This
+// script talks to the API over HTTP and so never imports @workspace/db, which
+// is what loads it everywhere else — leaving this the one entry point that
+// could not see the credentials it now needs. Same mechanism, same file.
+try {
+  process.loadEnvFile(path.join(REPO_ROOT, ".env"));
+} catch {
+  // Absent is fine: the variables may already be exported in the environment.
+}
 
 const FIXTURE_PATH = path.join(
   REPO_ROOT,
@@ -212,6 +225,15 @@ interface CitationCheck {
   echoedFromStudent?: boolean;
 }
 
+/**
+ * The session cookie, held for the life of the run.
+ *
+ * Sessions belong to the student who argued them, so `POST /api/sessions` sits
+ * behind `requireUser` and this script has to be somebody. It is not a browser
+ * and has no cookie jar, so the header is carried by hand.
+ */
+let sessionCookie: string | null = null;
+
 async function api<T>(
   method: "GET" | "POST",
   route: string,
@@ -219,7 +241,10 @@ async function api<T>(
 ): Promise<T> {
   const response = await fetch(`${API}${route}`, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(sessionCookie ? { Cookie: sessionCookie } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await response.text();
@@ -229,6 +254,57 @@ async function api<T>(
     throw new Error(`${method} ${route} → ${response.status}: ${text.slice(0, 400)}`);
   }
   return text ? (JSON.parse(text) as T) : ({} as T);
+}
+
+/**
+ * Signs in and keeps the cookie.
+ *
+ * Credentials come from the environment, never from a flag: an argument is
+ * visible in shell history and in the process list of every other user on the
+ * machine, and this one opens a real account on a real database.
+ *
+ * The script deliberately does not offer to create the account. Signing up is
+ * rate-limited to five an hour per host and a demo tool that quietly registers
+ * users is a tool that fills a table with them; the one-line curl in the error
+ * is a decision the operator makes once, on purpose.
+ */
+async function signIn(): Promise<void> {
+  const email = process.env.DEMO_EMAIL;
+  const password = process.env.DEMO_PASSWORD;
+
+  if (!email || !password) {
+    throw new Error(
+      "Sessions are scoped to a signed-in student, so this needs an account.\n" +
+        "  Set DEMO_EMAIL and DEMO_PASSWORD, then re-run.\n" +
+        "  To create one:\n" +
+        `    curl -X POST ${API}/api/auth/signup -H "Content-Type: application/json" \\\n` +
+        '      -d \'{"email":"you@example.com","displayName":"You","password":"..."}\'',
+    );
+  }
+
+  const response = await fetch(`${API}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Sign-in failed → ${response.status}: ${(await response.text()).slice(0, 200)}`,
+    );
+  }
+
+  // Only the name=value pair; the attributes after the first ';' are
+  // instructions to a browser and mean nothing on a request header.
+  const setCookie = response.headers.get("set-cookie");
+  const pair = setCookie?.split(";")[0];
+  if (!pair) {
+    throw new Error("Signed in but no session cookie came back");
+  }
+  sessionCookie = pair;
+
+  const who = (await response.json()) as { displayName?: string };
+  console.log(`Signed in as ${who.displayName ?? email}\n`);
 }
 
 const SPEAKER_STEM: Record<string, string> = {
@@ -281,6 +357,8 @@ async function main(): Promise<void> {
     });
     return;
   }
+
+  await signIn();
 
   // Find the case by title. Its id differs between databases because the seed
   // inserts in title order, so hardcoding a number would break on a fresh one.
