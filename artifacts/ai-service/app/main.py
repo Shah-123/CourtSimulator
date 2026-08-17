@@ -1,4 +1,4 @@
-"""Adalat AI reasoning service.
+"""CourtSimulator reasoning service.
 
 Owns retrieval, citation verification, agent memory and (from here on) the
 multi-agent courtroom. The Express API remains the system of record for
@@ -44,9 +44,9 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="Adalat AI Service",
+    title="CourtSimulator Service",
     version="0.1.0",
-    description="Retrieval, grounding and agentic reasoning for Adalat AI",
+    description="Retrieval, grounding and agentic reasoning for CourtSimulator",
     lifespan=lifespan,
 )
 

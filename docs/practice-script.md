@@ -1,6 +1,6 @@
 # Practice script — arguing against the bench
 
-Lines to say to Adalat AI, and what each one should produce.
+Lines to say to CourtSimulator, and what each one should produce.
 
 Every utterance here is adapted from
 [`objection_scenarios.json`](../artifacts/ai-service/eval/datasets/objection_scenarios.json),

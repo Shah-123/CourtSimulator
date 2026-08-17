@@ -262,7 +262,7 @@ export default function VerdictPage() {
         {/* Footer Notice */}
         <footer className="border-t border-rule pt-4 text-center">
           <p className="apparatus text-[0.625rem] text-muted-foreground leading-relaxed">
-            Evaluated by the Adalat AI Judicial Deliberation Graph against the Record of Proceedings and the statutory corpus of Pakistan.
+            Evaluated by the CourtSimulator Judicial Deliberation Graph against the Record of Proceedings and the statutory corpus of Pakistan.
           </p>
         </footer>
       </div>

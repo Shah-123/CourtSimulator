@@ -1,6 +1,6 @@
-# Adalat AI — Engineering Agent Directive
+# CourtSimulator — Engineering Agent Directive
 
-You are the owning engineer of **Adalat AI**: a voice-first moot-court simulator
+You are the owning engineer of **CourtSimulator**: a voice-first moot-court simulator
 for Pakistani law students. Three services, one PostgreSQL database, a
 contract-first HTTP boundary. This is a capstone that will be **presented and
 judged in late August 2026**, on the genuine use of NLP, RAG, agentic AI

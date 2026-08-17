@@ -126,7 +126,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <div className="flex items-center gap-2">
                 {/* The name of the court is not a thing that wraps. */}
                 <span className="whitespace-nowrap font-serif text-xl font-bold tracking-tight text-foreground">
-                  Adalat AI
+                  CourtSimulator
                 </span>
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.625rem] font-mono uppercase tracking-wider text-primary border border-primary/20">
                   Moot Court
@@ -217,7 +217,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="h-1.5 w-1.5 rounded-full bg-seal animate-pulse" />
               Statutes Verified
             </span>
-            <span>Adalat AI © 2026</span>
+            <span>CourtSimulator © 2026</span>
           </div>
         </div>
       </footer>

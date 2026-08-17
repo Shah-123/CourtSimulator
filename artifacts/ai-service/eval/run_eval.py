@@ -73,7 +73,7 @@ def _spend(label: str, ledger, recorder: Recorder) -> None:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Adalat AI evaluation suite")
+    parser = argparse.ArgumentParser(description="CourtSimulator evaluation suite")
     parser.add_argument("--judge-runs", type=int, default=3)
     parser.add_argument("--no-rerank", action="store_true", help="retrieval: fusion only")
     parser.add_argument("--retrieval-only", action="store_true")

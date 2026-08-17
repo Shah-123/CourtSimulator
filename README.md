@@ -1,4 +1,4 @@
-# Adalat AI
+# CourtSimulator
 
 **A voice-first moot-court simulator for Pakistani law students.** Students pick
 or generate a case, argue through each courtroom phase, examine witnesses, and

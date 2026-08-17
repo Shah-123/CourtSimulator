@@ -1,4 +1,4 @@
-"""Evaluation harness for Adalat AI — retrieval quality and AI-judge reliability.
+"""Evaluation harness for CourtSimulator — retrieval quality and AI-judge reliability.
 
 Dev-only tooling, deliberately outside the ``app`` package (and excluded from the
 installable wheel). Run the pieces with ``python -m eval.retrieval_eval`` /
