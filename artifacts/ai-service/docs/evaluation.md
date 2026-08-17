@@ -119,9 +119,12 @@ guard is exercised at the same time.
 
 | transcript | median overall | spread | citation accuracy |
 | --- | --- | --- | --- |
-| strong | 85 | 0 | 100% |
-| mixed | 55 | 5 | 50% |
-| weak | 28 | 10 | 0% |
+| strong | 85-88 | 0-3 | 100% |
+| mixed | 55-58 | 4-5 | 50% |
+| weak | 25-35 | 3-10 | 0% |
+
+Ranges, not points, because these are three samples of a model call and the
+medians move between identical runs. The per-run history is below.
 
 - **Reliability** — mean standard deviation ~2 points across runs; worst spread
   10 points, on the weak transcript (poor advocacy is genuinely harder to score
@@ -135,16 +138,26 @@ guard is exercised at the same time.
   | the citation correction | 87 / 55 / 25 | 20 | 4.9 |
   | repairing PPC s.34 and s.375 | 85 / 55 / 25 | 10 | 2.3 |
   | the full corpus rewrite | 85 / 55 / 35 | 7 | 2.4 |
+  | the witness agent (2026-08-17) | 88 / 55 / 35 | 10 | 2.3 |
+  | auth + corpus tooling merge (same day) | 88 / 58 / 35 | 4 | 1.5 |
 
-  The weak transcript scored 25, 25 and 35 while nothing in the judge changed.
-  Its mark is the least stable figure in the harness, which is the expected
-  shape: poor advocacy gives a grader less to agree with.
+  The weak transcript scored 25, 25, 35, 35 and 35 while nothing in the judge
+  changed. Its mark is the least stable figure in the harness, which is the
+  expected shape: poor advocacy gives a grader less to agree with. The last
+  three runs all put it at 35, so **28 is no longer the number to quote** —
+  give the range.
 
-  What did **not** move across either run: discrimination 3/3, and citation
+  The last two rows are the first pair recorded to MLflow, one either side of
+  the merge, and they are the reason the tracking exists: `git_commit` 7dddaba
+  against f61ec37, same settings, no regression, and the spread narrowing from
+  10 to 4 visible without re-reading a console.
+
+  What did **not** move across any run: discrimination 3/3, and citation
   accuracy 100% / 50% / 0%. Those are the figures to quote. Give the medians
   with their spread, or not at all.
 - **Discrimination** — 3/3 transcript pairs ranked as expected:
-  strong (85) > mixed (55) > weak (28), a 57-point gap between best and worst.
+  strong (85-88) > mixed (55-58) > weak (25-35), a gap of 53-57 points between
+  best and worst.
 - **Citation guard** — accuracy collapses from 100% (strong, real citations) to
   0% (weak, both fabricated citations caught). The judge is told the audit result
   as ground truth, so the fabrications also drag down its legal-reasoning score.

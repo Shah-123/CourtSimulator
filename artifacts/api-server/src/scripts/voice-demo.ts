@@ -54,23 +54,30 @@ const ONLY = (() => {
   return i >= 0 ? (args[i + 1] ?? null) : null;
 })();
 
-const MODEL = process.env.MODEL_TTS || "tts-1-hd";
+// Must match `SPEECH_MODEL` in lib/voice.ts. Both read MODEL_TTS, so a default
+// of its own here meant the recorded run and the live session spoke through
+// different engines whenever the variable was unset — the replay would not
+// sound like the thing it is a recording of.
+const MODEL = process.env.MODEL_TTS || "gpt-4o-mini-tts";
 
 /**
- * A voice per speaker, chosen so the three roles are distinguishable at the
- * back of a room rather than merely different.
+ * A voice per speaker. The three role voices deliberately mirror
+ * `PERSONA_VOICES` in lib/voice.ts, so a recorded agent sounds like the same
+ * agent does live — they are kept in step by hand because that map is module
+ * private and widening its surface for a replay tool is the wrong trade.
  *
- * The two witnesses are separated as well. They never share a scene, but a
- * student watching should hear that the alibi witness in cross is not the
- * eyewitness from examination-in-chief — that distinction is the point of
- * beats 3 and 7 sitting back to back.
+ * The second witness is the one deliberate divergence. Live, every witness
+ * speaks in shimmer; there is only ever one on the stand and the student can
+ * see whose name is on the record. A recording played to a room has no such
+ * cue, and a listener should hear that the alibi witness in cross is not the
+ * eyewitness from examination-in-chief — which is the point of beats 3 and 7
+ * sitting back to back.
  */
 const VOICES = {
   judge: "onyx",
   opposing_counsel: "echo",
-  "witness:Sana Arif": "nova",
-  "witness:Reema Khan": "shimmer",
-  witness: "nova",
+  witness: "shimmer",
+  "witness:Reema Khan": "nova",
 } as const;
 
 type Voice = (typeof VOICES)[keyof typeof VOICES];

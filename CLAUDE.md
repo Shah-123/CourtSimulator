@@ -144,7 +144,9 @@ This repo already makes decisions on measurement. Preserve that standard.
   (0.90 / 0.94 before the corpus was corrected — restoring provisions to their
   full official text gave the raw retrievers more competing prose, and the
   reranker absorbed all of it); reranked hit@1 1.00 / MRR 1.00; judge ranks
-  strong 85-88 > mixed 55 > weak 28-30 with citation accuracy 100% vs 0%;
+  strong 85-88 > mixed 55-58 > weak 25-35 with citation accuracy 100% vs 0%
+  (the weak median has read 35 on the last three runs — quote the range, and
+  never 28 alone);
   courtroom objection decision recall 1.00 and 0 sustained-objection routing
   leaks, with precision / F1 / ground accuracy averaging 0.98-0.99 over 3 runs
   (a single run often reads 1.00 — quote the mean, see `docs/evaluation.md`);
@@ -292,9 +294,19 @@ terms of `run_turn_stream` so the text and voice courtrooms cannot drift.
   baselines in `docs/evaluation.md` remain the thing to quote. Still missing:
   per-call tracing, CI, Docker, and surfacing cost per *session* in the app
   rather than only in the harness.
-- **Security & contract fixes (#8).** User scoping (there is no auth yet and the
-  dashboard is global); reconcile stale model claims against actual code
-  defaults. The prompt-injection guard is **deliberately not built**:
+- **Security & contract fixes (#8).** User scoping is **done**: `users` (scrypt
+  password hashing), a stateless signed session cookie, and rate limiting keyed
+  on both email and IP (`lib/auth.ts`, `lib/rate-limit.ts`). `requireUser` is
+  mounted on the whole `/sessions` and `/dashboard` routers — verified by
+  response code: `/cases` stays 200 as a shared library while `/auth/me`,
+  `/dashboard`, `POST /sessions` and `POST /sessions/:id/voice-turns` all return
+  401 unauthenticated. **`AUTH_SECRET` (32+ chars) has no default and
+  `getSecret()` throws without it**, so a tree with a stale `.env` boots, serves
+  `/cases`, and then fails only at sign-in. Model claims were reconciled against
+  code on 2026-08-17 and the README table is accurate; `MODEL_AUDIO` (the
+  conversational audio path, default `gpt-4o-audio-preview`) is the one env var
+  the README does not list. The prompt-injection guard is **deliberately not
+  built**:
   `pnpm run eval:redteam` puts 36 attacks through the courtroom and the verdict
   scorer and 0 land, because opposing counsel objects to injected instructions
   as irrelevant. Build the guard when an attack lands, and add the attack first.
