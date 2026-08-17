@@ -273,12 +273,28 @@ and speaks each event as it arrives. Measured: objection → sustained ruling �
 witness answer, counsel audible at 6.9s, **first audio 8.1s** (was 16.1s
 batched), 0 misaligned PCM chunks, audit 1/1 verified. `run_turn` is defined in
 terms of `run_turn_stream` so the text and voice courtrooms cannot drift.
-**Mic capture and browser playback remain untested.**
+
+**Mic capture and browser playback confirmed 2026-08-17** by the user speaking
+a leading question in chief: opposing counsel's objection and the bench's
+ruling were both audible in distinct voices. The transcription leg was proved
+separately in code — a real 48 kHz webm/opus blob, the format Chrome's
+MediaRecorder produces, returns its input word-for-word through
+`ensureCompatibleFormat` (passthrough, no ffmpeg) and `speechToText`. Still not
+heard: a witness *answering*. That run was a sustained objection, where the
+graph routes to `END` and silence is the correct behaviour, so the witness's
+voice remains the one link nobody has listened to.
 
 **Pending — this is where effort belongs:**
 
-- **Mic test of the voice session.** Confirm a real spoken turn produces the
-  objection → ruling → testimony sequence audibly, in distinct voices.
+- **Hear a witness answer.** The objection → ruling half of the sequence is
+  confirmed audible (above). Put a *proper* question to a witness — one that
+  draws no objection — and confirm the testimony is spoken in its own voice.
+  Until then the witness's audio path is the last unheard link.
+- **The recorded-run fallback is gone.** `/recorded`, `demo-run.json`,
+  `capture-demo` and `voice-demo` were removed on 2026-08-17 as outside the
+  MVP. The demo is now live-only: no network at the venue, or an exhausted API
+  balance, means no demo. Recoverable from git history if that trade stops
+  looking right.
 - **Transcription latency (4.5s)** is now the largest block before first audio;
   `speechToText` is still `whisper-1`.
 - **Reasoning still in Express — one route left.** The manually-raised objection

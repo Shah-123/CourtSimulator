@@ -73,7 +73,6 @@ artifacts/
   adalat-ai/        React 19 + Vite web app (voice UI, dashboard)
   api-server/       Express 5 API: sessions, turns, voice streaming, dashboard
   ai-service/       Python FastAPI service: retrieval, grounding, memory, agents
-  mockup-sandbox/   UI mockup scratch space
 data/
   statutes/         Pakistani statute corpus (source of truth for citations)
 lib/

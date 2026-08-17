@@ -9,7 +9,6 @@ import {
   Scale,
   ListOrdered,
   FileCheck2,
-  PlayCircle,
   Gavel,
 } from "lucide-react";
 import { useLogOut } from "@workspace/api-client-react";
@@ -21,7 +20,6 @@ const NAV = [
   { href: "/dashboard", label: "Chambers", icon: Scale },
   { href: "/history", label: "Cause List", icon: ListOrdered },
   { href: "/evidence", label: "Statutes & Evid.", icon: FileCheck2 },
-  { href: "/recorded", label: "Recorded Run", icon: PlayCircle },
 ];
 
 function ThemeToggle() {
