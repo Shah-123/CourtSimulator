@@ -1,0 +1,1036 @@
+<title>CourtSimulator Concepts</title>
+
+<style>
+  /* The product's own tokens, so this reads as the same object as the app and
+     the poster. Committed to one appearance: a court record has one. */
+  :root {
+    --ground: #e9ebe4;
+    --paper:  #fafbf6;
+    --ink:    #1a1f27;
+    --ink-2:  #5b626c;
+    --rule:   #c7cabf;
+    --primary:#4c2f78;
+    --stamp:  #c03d24;
+    --seal:   #255b48;
+    --seal-wash: #e4efe9;
+
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --mono: 'Courier New', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .sheet {
+    max-width: 62rem;
+    margin: 0 auto;
+    background: var(--paper);
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    padding: 3.5rem 3rem 5rem;
+  }
+
+  .apparatus {
+    font-family: var(--sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  header.masthead {
+    border-bottom: 3px double var(--rule);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0.6rem 0 0.8rem;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.05rem;
+    color: var(--ink);
+    max-width: 44rem;
+    margin: 0;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 3rem 0 0.3rem;
+    padding-top: 1.2rem;
+    border-top: 2px solid var(--ink);
+  }
+
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--primary);
+    margin-right: 0.6rem;
+    vertical-align: 0.15em;
+  }
+
+  h3 {
+    font-family: var(--serif);
+    font-size: 1.12rem;
+    font-weight: 600;
+    margin: 1.9rem 0 0.35rem;
+  }
+
+  h3 .expand {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    display: block;
+    margin-top: 0.15rem;
+  }
+
+  p { margin: 0.7rem 0; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+    padding: 0.08em 0.32em;
+    border-radius: 2px;
+  }
+
+  .where {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-2);
+    border-left: 2px solid var(--rule);
+    padding-left: 0.7rem;
+    margin: 0.5rem 0 0;
+  }
+
+  /* A measured figure. Used only where a real number exists. */
+  .measured {
+    background: var(--seal-wash);
+    border-left: 3px solid var(--seal);
+    padding: 0.7rem 1rem;
+    margin: 0.9rem 0;
+    font-size: 0.95rem;
+  }
+  .measured strong { color: var(--seal); }
+
+  /* A limit, an honest caveat, or a thing that is not true yet. */
+  .limit {
+    background: color-mix(in srgb, var(--stamp) 6%, transparent);
+    border-left: 3px solid var(--stamp);
+    padding: 0.7rem 1rem;
+    margin: 0.9rem 0;
+    font-size: 0.95rem;
+  }
+  .limit strong { color: var(--stamp); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.1rem 0;
+    font-size: 0.92rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    border-bottom: 2px solid var(--ink);
+  }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .flow {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.75;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 1rem 1.2rem;
+    margin: 1.1rem 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  ul, ol { margin: 0.7rem 0; padding-left: 1.3rem; }
+  li { margin: 0.35rem 0; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.2rem;
+    border-top: 3px double var(--rule);
+  }
+
+  @media (max-width: 640px) {
+    .sheet { padding: 2rem 1.2rem 3rem; }
+    h1 { font-size: 1.9rem; }
+  }
+
+  @media print {
+    body { background: var(--paper); }
+    .sheet { border: none; max-width: none; padding: 0; }
+    h2 { break-after: avoid; }
+    .measured, .limit, .flow { break-inside: avoid; }
+    @page { size: A4; margin: 16mm; }
+  }
+</style>
+
+<div class="sheet">
+
+<header class="masthead">
+  <div class="apparatus">Reference · every abbreviation written out in full</div>
+  <h1>The technical concepts behind CourtSimulator, and how each one works</h1>
+  <p class="standfirst">
+    A voice-first moot court for Pakistani law students. A student speaks;
+    three independent artificial-intelligence agents hold a hearing against
+    them; every provision any agent cites is checked against a verified statute
+    corpus before it is spoken aloud. This document names each technique the
+    system genuinely uses, explains the mechanism, and attaches a measured
+    number wherever one exists.
+  </p>
+</header>
+
+<h2><span class="num">01</span>System architecture</h2>
+
+<h3>Three services behind one origin</h3>
+
+<p>
+  The system is three separate programs that talk over Hypertext Transfer
+  Protocol, plus one database. The split is not decoration — it is what keeps
+  the reasoning in one place.
+</p>
+
+<div class="flow">Browser (React)  ──►  Express API  ──►  Python AI service  ──►  PostgreSQL
+   port 5173            port 5000          port 8000
+   speaks, listens      contract, sessions  retrieval, agents,
+                        voice transport     memory, scoring</div>
+
+<table>
+  <tr><th>Service</th><th>Language and framework</th><th>What it owns</th></tr>
+  <tr><td>Web application</td><td>React 19, Vite, TypeScript</td><td>The microphone, playback, and the record of proceedings on screen</td></tr>
+  <tr><td>Application Programming Interface server</td><td>Express 5 on Node.js, TypeScript</td><td>The Hypertext Transfer Protocol contract, session persistence, authentication, and voice transport</td></tr>
+  <tr><td>Artificial-intelligence service</td><td>Python 3.12, FastAPI</td><td>All reasoning: retrieval, grounding, memory, the agents, verdict scoring</td></tr>
+</table>
+
+<p>
+  Two rules hold this together. <strong>Every model call lives in the Python
+  service</strong> — the Express server never builds a prompt. And
+  <strong>the browser never talks to the Python service</strong>; it calls
+  same-origin <code>/api/*</code> paths only, so the OpenAI credential exists on
+  the two servers and never reaches a user's machine.
+</p>
+
+<div class="limit">
+  <strong>One exception, and it is known.</strong> The manually-raised objection
+  ruling still builds a prompt inside the Express server rather than calling the
+  Python service. It is the last violation of that boundary and it is recorded
+  as pending work rather than quietly tolerated.
+</div>
+
+<h3>Contract-first design with generated validators</h3>
+
+<p>
+  A single OpenAPI specification file is the source of truth for every shape
+  that crosses the network. From it, a code generator produces two libraries:
+  Zod validators used by the server, and a typed React Query client used by the
+  browser. Neither is ever hand-edited — you change the specification and
+  regenerate.
+</p>
+
+<p>
+  The benefit is that a mismatch between what the browser sends and what the
+  server expects becomes a compile error rather than a runtime surprise during a
+  demonstration. Every route boundary validates its input against the generated
+  schema; nothing is parsed ad hoc.
+</p>
+<p class="where">lib/api-spec/openapi.yaml → lib/api-zod, lib/api-client-react</p>
+
+<h2><span class="num">02</span>Natural Language Processing and the language model</h2>
+
+<h3>Large Language Model
+  <span class="expand">the model that produces every spoken line</span></h3>
+
+<p>
+  A Large Language Model is a neural network trained to predict text. Everything
+  the court says — an objection, a ruling, testimony, a written verdict — is
+  produced by one. The system uses two deliberately:
+</p>
+
+<table>
+  <tr><th>Role</th><th>Model</th><th>Why</th></tr>
+  <tr><td>Reasoning and writing</td><td><code>gpt-4o</code></td><td>Rulings, testimony, verdicts, reranking — anywhere a wrong answer teaches a wrong rule</td></tr>
+  <tr><td>First-pass screening</td><td><code>gpt-4o-mini</code></td><td>The cheap half of the objection cascade, described in section 8</td></tr>
+  <tr><td>Text representation</td><td><code>text-embedding-3-small</code></td><td>1,536-dimension vectors for the statute corpus</td></tr>
+</table>
+
+<h3>Structured output
+  <span class="expand">making a model's answer machine-readable</span></h3>
+
+<p>
+  A model that writes prose cannot be routed on. Every agent decision is
+  therefore requested as strict JavaScript Object Notation with a fixed shape.
+  The witness, for example, must return an outcome, a grounding, a private
+  basis, and the words to speak:
+</p>
+
+<div class="flow">{"outcome":  "answer" | "dont_recall" | "decline_speculation" | "correct_record",
+ "grounding": "statement" | "prior_testimony" | "both" | "none",
+ "basis":     "one line, not spoken aloud",
+ "spoken":    "what the court hears"}</div>
+
+<p>
+  Because the outcome is a fixed set rather than free text, the graph can branch
+  on it and the evaluation harness can score it without a second model reading
+  the answer.
+</p>
+
+<h3>Prompt design as a constraint, not a personality</h3>
+
+<p>
+  Each agent has its own system prompt stating what it may do. The witness prompt
+  carries a binding rule — every asserted fact must be traceable to its statement
+  of record or its own earlier testimony — and makes the honest refusals
+  first-class options, because a compliant model will otherwise never choose
+  them. Opposing counsel may only cite objection grounds drawn from the corpus,
+  so a fabricated ground is impossible by construction rather than by hope.
+</p>
+
+<h2><span class="num">03</span>Retrieval-Augmented Generation</h2>
+
+<p>
+  Retrieval-Augmented Generation means the model is never asked to recall the law
+  from training. The governing statutory text is fetched from a real corpus and
+  placed into the prompt, and the model is instructed to rule only on text it has
+  actually been shown. This is the difference between a system that <em>sounds</em>
+  legal and one that can be checked.
+</p>
+
+<p>
+  Retrieval here is a four-stage pipeline. Two independent searches run, their
+  rankings are merged, the merged head is reordered by a stronger model, and only
+  then does anything reach an agent's prompt.
+</p>
+
+<div class="flow">query ──┬─► Best Matching 25   (lexical, in memory)  ──► ranked list ──┐
+        │                                                                 ├─► Reciprocal
+        └─► dense vectors      (1,536-d, exact scan)  ──► ranked list ──┘   Rank Fusion
+                                                                                  │
+                                          top-k  ◄── Large Language Model rerank ◄┘</div>
+
+<h3>The corpus</h3>
+
+<p>
+  Fifty-three provisions of Pakistani law, stored as structured records with the
+  full official text: the Qanun-e-Shahadat Order 1984 (twenty articles), the
+  Pakistan Penal Code 1860 (fifteen sections), the Code of Criminal Procedure 1898
+  (ten sections), and the Constitution of Pakistan 1973 (eight articles).
+</p>
+
+<div class="measured">
+  <strong>52 of 53</strong> provisions have been compared word-for-word against
+  their official printed source and carry a per-provision verified flag. Reproduce
+  with <code>pnpm run statutes:verify</code>. The exception is Constitution Article
+  199, whose text is <em>later</em> than the available print, so it cannot be
+  confirmed and is flagged unverified rather than assumed correct.
+</div>
+
+<h3>Best Matching 25
+  <span class="expand">the lexical half — why, and how it scores</span></h3>
+
+<p>
+  The name is literal. It comes from the Okapi information-retrieval system built
+  at City University London in the 1990s, and "BM25" is the twenty-fifth in a
+  numbered series of Best Matching formulations that the research group tried.
+  It has stayed the default lexical ranker for thirty years because it is cheap,
+  needs no training, and is very hard to beat on exact-term queries.
+</p>
+
+<p><strong>Why this system needs it at all.</strong>
+  Embeddings are a blur. Ask for <em>"section 302"</em> and a vector search returns
+  provisions that are <em>about</em> homicide — section 300, section 302, section
+  324 — because they all sit in the same region of meaning-space. But a law student
+  saying "section 302" does not want a neighbourhood. They want that section. Exact
+  identifiers, statutory numbers, and domain terms of art are precisely where
+  embeddings are weakest and term matching is strongest.
+</p>
+
+<p><strong>How it scores.</strong>
+  For each term in the query, Best Matching 25 combines three ingredients:
+</p>
+
+<table>
+  <tr><th>Ingredient</th><th>What it does</th><th>Why it matters here</th></tr>
+  <tr>
+    <td>Term frequency, <em>with saturation</em></td>
+    <td>More occurrences score higher, but with sharply diminishing returns — the curve flattens rather than growing linearly</td>
+    <td>A provision using "murder" ten times is not ten times more relevant than one using it twice. Saturation is the main thing BM25 adds over naive term counting</td>
+  </tr>
+  <tr>
+    <td>Inverse document frequency</td>
+    <td>A term appearing in few documents is worth more than one appearing everywhere</td>
+    <td>"Shall" appears in every provision and carries almost no signal. "Qatl-i-amd" appears in a handful and is almost decisive</td>
+  </tr>
+  <tr>
+    <td>Length normalisation</td>
+    <td>Discounts long documents, which would otherwise win simply by containing more words</td>
+    <td>Provisions vary from one line to several pages. Without this, the longest section would rank first for nearly everything</td>
+  </tr>
+</table>
+
+<p>
+  Two tuning constants control the shape: one sets how quickly repetition saturates,
+  the other how aggressively length is penalised. This system uses the library
+  defaults, because the corpus is small and uniform enough that tuning them would be
+  fitting noise.
+</p>
+
+<p><strong>One implementation detail that genuinely mattered.</strong>
+  The tokeniser is custom. A standard word tokeniser splits on punctuation, which
+  turns <em>qatl-i-amd</em> into <code>qatl</code>, <code>i</code>, <code>amd</code>
+  and <em>qanun-e-shahadat</em> into fragments including a bare <code>e</code>.
+  That scatters a decisive legal term's weight across meaningless pieces — and
+  <code>i</code> and <code>e</code> appear everywhere, so inverse document frequency
+  correctly judges them worthless. The tokeniser keeps hyphenated terms intact, so
+  the term of art stays one term.
+</p>
+<p class="where">app/rag/index.py — tokenize(), indexed over heading + content</p>
+
+<p><strong>Where it fails.</strong>
+  Given <em>"the witness is just repeating what somebody else told him outside
+  court"</em>, Best Matching 25 finds nothing useful. The governing article — oral
+  evidence must be direct — shares not one content word with that sentence. This is
+  exactly the gap the other retriever fills.
+</p>
+
+<h3>Embeddings, and why the dimension is 1,536</h3>
+
+<p>
+  An embedding turns a passage into a list of numbers positioned so that texts with
+  similar meaning sit near each other. The model here is
+  <code>text-embedding-3-small</code>, and <strong>1,536 is that model's native
+  output width</strong> — it is not a number this project chose freely.
+</p>
+
+<p>
+  What the project <em>did</em> choose is to use the full width. The
+  text-embedding-3 family is trained with Matryoshka Representation Learning, which
+  packs the most important information into the earliest dimensions, so a vector can
+  be truncated — to 512, or 256 — and still work, degrading gracefully rather than
+  breaking. Truncating trades accuracy for storage and speed.
+</p>
+
+<p>
+  That trade buys nothing at this scale. The arithmetic:
+</p>
+
+<table>
+  <tr><th>Quantity</th><th class="num">Value</th></tr>
+  <tr><td>Provisions in the corpus</td><td class="num">53</td></tr>
+  <tr><td>Dimensions per vector</td><td class="num">1,536</td></tr>
+  <tr><td>Bytes per number (32-bit float)</td><td class="num">4</td></tr>
+  <tr><td>Total vector storage</td><td class="num">≈ 318 kilobytes</td></tr>
+  <tr><td>At a few thousand provisions, fully ingested</td><td class="num">≈ 30 megabytes</td></tr>
+</table>
+
+<p>
+  Truncating to 512 dimensions would save a fraction of a megabyte and cost
+  retrieval accuracy on a corpus where accuracy is the entire point. The larger
+  sibling model, <code>text-embedding-3-large</code>, emits 3,072 dimensions —
+  double the storage and cost for a gain the measured figures do not need, because
+  reranking already reaches a perfect hit@1.
+</p>
+
+<div class="limit">
+  <strong>1,536 is a hard constraint, not a setting.</strong> The number is written
+  into the configuration and must match the vectors already stored in the database.
+  Changing the embedding model, or the dimension, invalidates every stored vector —
+  the two would be compared in different spaces and the results would be
+  meaningless. Either change is therefore a full re-index of the corpus, not an
+  edit.
+</div>
+
+<h3>Cosine similarity, and a small optimisation</h3>
+
+<p>
+  Similarity is measured by the cosine of the angle between two vectors. Cosine
+  rather than straight-line distance, because in embedding space
+  <em>direction</em> carries the meaning and <em>magnitude</em> largely reflects
+  incidental things like passage length. Two texts saying the same thing at
+  different lengths should score as similar, and cosine ignores the length.
+</p>
+
+<p>
+  Cosine normally requires dividing by both vectors' lengths. This system divides
+  once, at index time: every vector is scaled to unit length before it is stored.
+  Once both sides have length one, the cosine <em>is</em> the dot product, so the
+  whole search collapses to a single matrix multiplication with no division at
+  query time.
+</p>
+<p class="where">app/rag/index.py — vectors stored as vector / norm; retrieval.py — index.matrix @ query_vector</p>
+
+<h3>Why both, and how they are merged</h3>
+
+<table>
+  <tr><th>Query</th><th>Found by</th></tr>
+  <tr><td>"section 302", "qatl-i-amd"</td><td>Best Matching 25 — exact terms, which embeddings blur into neighbouring provisions</td></tr>
+  <tr><td>"the witness is repeating what someone else told him"</td><td>Embeddings — this shares no vocabulary at all with the article codifying the rule against hearsay</td></tr>
+</table>
+
+<p>
+  Legal questions arrive in both modes and neither retriever covers both, so both
+  run and their results are merged. The merge is <strong>Reciprocal Rank
+  Fusion</strong>, not a weighted sum of the two scores — and that choice is forced.
+</p>
+
+<p>
+  Best Matching 25 scores are unbounded: 7.12 on one query, above 40 on another,
+  depending on term rarity. Cosine similarities are bounded and sit in a narrow band
+  around 0.30 to 0.45. Adding those together directly means one of them dominates
+  arbitrarily, and fixing that needs a normalising constant that must be retuned
+  every time the corpus changes. Reciprocal Rank Fusion sidesteps the problem
+  entirely by throwing the scores away and using only the <em>position</em> in each
+  list:
+</p>
+
+<div class="flow">score(document) = Σ  1 / (k + rank in retriever r)          k = 60
+                 r∈retrievers</div>
+
+<p>
+  Being rank-based makes it scale-free — it works identically no matter what units
+  either retriever reports. The constant k controls how sharply the top of each list
+  is favoured. With k at zero, the first-placed document scores 1.0 and the second
+  only 0.5, so a single retriever's favourite would dominate the fusion outright.
+  At k = 60 those become 1/61 and 1/62 — nearly equal — so agreement between the two
+  retrievers matters more than either one's confidence. The value 60 is the standard
+  from Cormack and colleagues, 2009.
+</p>
+
+<h3>Reranking: bi-encoder versus cross-encoder</h3>
+
+<p>
+  This distinction is the key to why reranking works at all, and it is worth being
+  able to state plainly.
+</p>
+
+<table>
+  <tr><th></th><th>Bi-encoder — the embedding search</th><th>Cross-encoder — the reranker</th></tr>
+  <tr><td>How</td><td>Query and document are encoded <em>separately</em> into vectors, then compared</td><td>Query and document are fed in <em>together</em>, so the model attends across both at once</td></tr>
+  <tr><td>Speed</td><td>Documents are embedded once, in advance. A query is one vector and one matrix multiply</td><td>Nothing can be precomputed — every query-document pair needs its own forward pass</td></tr>
+  <tr><td>Quality</td><td>Lossy. The document was compressed into a vector before the query existed, so nothing in it is query-aware</td><td>Higher. The model can weigh which part of the document answers <em>this</em> question</td></tr>
+</table>
+
+<p>
+  So the two stages divide labour by cost. The bi-encoder is fast enough to scan the
+  whole corpus and produce a shortlist; the cross-encoder is accurate enough to order
+  that shortlist and too expensive to run over everything. Here the fused shortlist
+  is roughly three times the requested result count.
+</p>
+
+<h3>Why the reranker is a Large Language Model, on evidence</h3>
+
+<p>
+  The conventional cross-encoder was tried first and <strong>made retrieval
+  worse</strong>. The test query was <em>"the witness is just repeating what somebody
+  else told him outside court"</em>; the correct answer is the article requiring oral
+  evidence to be direct.
+</p>
+
+<table>
+  <tr><th>Reranker</th><th class="num">Rank of the governing article</th><th>Note</th></tr>
+  <tr><td>None — fusion only</td><td class="num">2</td><td>"Impeaching credit" ranked above it</td></tr>
+  <tr><td>Cross-encoder, MS MARCO MiniLM</td><td class="num">10 of 15</td><td>Every score negative</td></tr>
+  <tr><td>Large Language Model</td><td class="num">1</td><td>Scored 10 out of 10</td></tr>
+</table>
+
+<p>
+  The explanation is the useful part. MS MARCO cross-encoders are trained on Bing
+  web-search query and passage pairs. They learn to reward lexical and topical
+  overlap, and they carry no representation of legal doctrine. Nothing in that
+  training signal connects a plain-English description of hearsay to the article
+  that codifies it — the two share no words and the connection is a matter of law,
+  not of language. An out-of-domain cross-encoder is worse than no reranker here.
+</p>
+
+<p>
+  The Large Language Model reranker is a cross-encoder in spirit — it reads the
+  question and the candidates together — but it can be <em>instructed</em>, and the
+  instruction is what does the work:
+</p>
+
+<div class="flow">"You rank Pakistani statutory provisions by how directly they govern a
+ legal question. Judge legal applicability, not topical similarity: a
+ provision that merely mentions the same subject matter scores low, a
+ provision that supplies the operative rule scores high."</div>
+
+<p>
+  Each candidate is numbered, truncated to its first characters to hold the prompt
+  down, and scored from zero to ten in a single call that returns structured
+  output. "Applicability, not similarity" is exactly the distinction the MS MARCO
+  model could not make, and stating it in words is cheaper than fine-tuning a model
+  that could.
+</p>
+
+<div class="measured">
+  <strong>hit@1 = 1.00, Mean Reciprocal Rank = 1.00</strong> with reranking, from
+  <strong>0.80 / 0.88</strong> with fusion alone, over a twenty-query golden set.
+  Reproduce with <code>pnpm run eval</code>.
+</div>
+
+<div class="limit">
+  <strong>What reranking costs.</strong> One extra model call per query, roughly
+  three to four seconds and a token charge. A local cross-encoder would be free and
+  fast — the backend is still switchable — but it needs a legal or
+  instruction-tuned checkpoint to be worth using. The default is set on the measured
+  evidence above, not on preference.
+</div>
+
+<h3>Exact search instead of a vector database</h3>
+
+<p>
+  Embeddings live in JavaScript Object Notation Binary columns in PostgreSQL and are
+  searched by an exact scan — every vector compared, none skipped. There is no
+  approximate index and no external vector database.
+</p>
+
+<p>
+  This is a decision, not a shortcoming. Approximate nearest-neighbour indexes trade
+  <em>exact</em> recall for speed, and that trade only pays somewhere north of a
+  hundred thousand vectors. At this scale the entire search is one matrix
+  multiplication: even at five thousand provisions that is about 7.7 million
+  multiply-add operations, which a numerical library completes in single-digit
+  milliseconds — faster than an approximate index, with recall that is exact rather
+  than probable, and one fewer database extension to deploy.
+</p>
+
+<p>
+  The host database offers only trigram indexing in any case, so an approximate
+  vector index was never on the table. The honest framing is that the constraint and
+  the right answer happened to agree.
+</p>
+
+<h2><span class="num">04</span>Agentic artificial intelligence</h2>
+
+<h3>The multi-agent courtroom as a state graph</h3>
+
+<p>
+  The courtroom is a directed graph built with LangGraph. Each participant is an
+  independent agent with its own system prompt, its own decision, and its own
+  tools. One spoken question travels through however many agents the moment
+  requires.
+</p>
+
+<div class="flow">                        ┌─ objection raised ─► JUDGE ─ sustained ─► question struck, END
+student speaks ─► OPPOSING COUNSEL          (ReAct)  └ overruled ──┐
+                        └─ no objection ─────────────────────────► WITNESS ─► END</div>
+
+<table>
+  <tr><th>Node</th><th>Agent</th><th>Decision it makes</th></tr>
+  <tr><td><code>objection_screen</code></td><td>Opposing counsel</td><td>Whether to object to the question just asked, and on which evidentiary ground</td></tr>
+  <tr><td><code>judge_ruling</code></td><td>The bench</td><td>Sustained or overruled, after reading the provision</td></tr>
+  <tr><td><code>witness_testify</code></td><td>Witness</td><td>Which of four things it can properly say</td></tr>
+  <tr><td><code>counsel_argues</code></td><td>Opposing counsel</td><td>Rebuttal when no witness is on the stand</td></tr>
+  <tr><td><code>bench_presides</code></td><td>The bench</td><td>Moderates openings and closings</td></tr>
+</table>
+
+<h3>The supervisor is the edges, not a prompt</h3>
+
+<p>
+  This is the single most important design claim in the project. In many
+  multi-agent systems a "supervisor" is another language model asked who should
+  speak next. Here routing is <strong>pure functions over the shared state</strong>
+  — the phase of the hearing and whether a witness is on the stand fully
+  determine who may act. No model is consulted.
+</p>
+
+<p>
+  The consequence is the demonstration's strongest moment: <strong>a sustained
+  objection routes the graph to its end node, so the witness is never
+  reached.</strong> The witness does not decide to stay silent and cannot be
+  talked out of it. The silence is asserted by an edge. No single model swapping
+  personas by prompt can make that guarantee.
+</p>
+<p class="where">app/agents/graph.py — _route_after_ruling returns END on "sustained"</p>
+
+<h3>Reasoning and Acting
+  <span class="expand">the bench reads before it rules</span></h3>
+
+<p>
+  Reasoning and Acting — usually written ReAct — is a loop in which a model
+  alternates between thinking and calling a tool, using each observation to
+  decide the next step. The judge does not rule from memory. It runs a
+  Thought → Action → Observation loop with one tool, <code>search_statute</code>,
+  which queries the retrieval pipeline described above, and only then produces a
+  ruling citing what it actually read.
+</p>
+
+<p>
+  Every step of that trace is stored and shown to the student, so the reasoning
+  behind a ruling survives a page reload. A courtroom record that cannot show why
+  the bench ruled is not a record.
+</p>
+
+<div class="measured">
+  <strong>The loop is bounded at 3 rounds.</strong> Every agent loop in the system
+  declares its bound explicitly in code — an unbounded agent loop is a runaway
+  cost and a hung demonstration.
+</div>
+
+<h3>The witness as a deciding agent</h3>
+
+<p>
+  A witness is the one agent with no tools, and that is a legal constraint rather
+  than an omission: a witness testifies to their own perception, and a search tool
+  would let them testify to things they looked up.
+</p>
+
+<p>
+  Their agency is the decision every real witness makes under examination —
+  <em>can I properly say this?</em> The model must commit to one of four outcomes
+  before speaking, and name what in its own record supports it:
+</p>
+
+<ul>
+  <li><strong>Answer</strong> — within its own perception, supported by its statement or prior testimony</li>
+  <li><strong>Do not recall</strong> — it did not perceive this, and will not construct a plausible answer</li>
+  <li><strong>Decline to speculate</strong> — the question asks for a guess, another person's intention, or a legal conclusion</li>
+  <li><strong>Correct the record</strong> — the question presupposes a fact never stated</li>
+</ul>
+
+<div class="measured">
+  <strong>0 fabrications out of 9</strong> questions the witness could not
+  possibly know, with <strong>17 of 17</strong> outcomes correct. Reproduce with
+  <code>pnpm run eval:witness</code>. The design this replaced invented an answer
+  on 2 of 8 comparable questions.
+</div>
+
+<h3>Two-tier memory</h3>
+
+<p>
+  Agents receive memory in two tiers. <strong>Working memory</strong> is the turns
+  of the current phase, replayed word for word. <strong>Long-term memory</strong>
+  is a structured recollection of everything earlier — the student's claims,
+  witness testimony, and the bench's directions, held as separate lists rather
+  than as a narrative, because a contradiction check compares against the claims
+  field specifically and flattening it into prose would make that comparison lossy.
+</p>
+
+<p>
+  Summarisation runs only on phase transitions, not on every turn, because within
+  a phase the agent already sees the raw turns. A watermark records how far the
+  summary has folded, making each fold incremental — four model calls per session
+  in total rather than one per turn.
+</p>
+
+<p>
+  Memory is also <strong>scoped per witness</strong>. A witness sees only their own
+  prior evidence, never another witness's, because they were out of the room for
+  it. The bench sees everything.
+</p>
+
+<h2><span class="num">05</span>Grounding, and the honesty machinery</h2>
+
+<h3>The citation audit</h3>
+
+<p>
+  Every utterance any agent produces is scanned for statutory citations, and each
+  citation is resolved against the corpus before the words are spoken. A provision
+  is marked verified, absent from the corpus, or present but not yet
+  diffed against an official print.
+</p>
+
+<h3>Attributed fabrication
+  <span class="expand">the distinction that stops the system lying about itself</span></h3>
+
+<p>
+  A naive audit counts every unknown citation as a hallucination. That produced a
+  real and instructive bug: when a student invented a section number and the bench
+  correctly <em>refused</em> it, the bench was flagged for fabricating the very
+  provision it had just rejected.
+</p>
+
+<p>
+  So the audit distinguishes a provision an agent <em>relied on</em> from one it
+  merely <em>named in order to reject</em>, and separately marks citations echoed
+  back from the student. Anything shown to a student uses the attributed figure.
+  A tool that misreports its own honesty is worse than one that says nothing.
+</p>
+
+<h3>Unverified-text markers</h3>
+
+<p>
+  Where a provision's text has not been confirmed against an official print, the
+  prompt block and the interface both carry an explicit warning not to quote it as
+  authoritative. These markers are treated as a feature to point at, never an
+  obstacle to route around, and may not be shortened or hidden to make output look
+  more confident.
+</p>
+
+<h2><span class="num">06</span>Voice</h2>
+
+<h3>Speech to text</h3>
+
+<p>
+  The browser records with the MediaRecorder interface, producing WebM audio in
+  the Opus codec. That is sent to the server and transcribed by a
+  speech-recognition model, pinned to English at temperature zero — the language
+  because a Pakistani courtroom turn mixes English legal phrasing with Urdu names
+  and terms of art and the model would otherwise switch mid-utterance, and the
+  temperature because a transcription that varies between identical takes makes
+  every number downstream unreproducible.
+</p>
+
+<div class="measured">
+  The WebM format passes through to transcription untouched — no conversion step,
+  no external media tool required. Verified end to end: a real 48 kilohertz
+  mono WebM/Opus blob returns its input <strong>word for word</strong>.
+</div>
+
+<h3>Text to speech, one voice per agent</h3>
+
+<p>
+  Each agent has a distinct synthesised voice, so a student who hears an objection
+  cut across a witness knows two different people spoke without reading the
+  transcript. Delivery instructions describe <em>how</em> a line is said and never
+  <em>what</em> — the words come from the agents and have already passed the
+  citation audit, so nothing in synthesis may alter them.
+</p>
+
+<p>
+  A dedicated speech endpoint is used rather than a conversational audio model
+  asked to repeat text, because a model free to paraphrase could turn an audited
+  citation into a different one, and the audit would then be vouching for words
+  nobody said.
+</p>
+
+<h3>Streaming with Server-Sent Events</h3>
+
+<p>
+  A turn is not synthesised and then sent. As each agent finishes speaking, its
+  transcript and audio are streamed to the browser over Server-Sent Events — a
+  one-way channel over ordinary Hypertext Transfer Protocol — while the next agent
+  is still working. Audio is 16-bit Pulse-Code Modulation at 24 kilohertz, which is
+  exactly what the browser's playback worklet expects, so the bytes stream through
+  without resampling.
+</p>
+
+<div class="measured">
+  <strong>First audio at 8.1 seconds</strong>, down from 16.1 seconds when the turn
+  was assembled before sending. Zero misaligned audio chunks.
+</div>
+
+<div class="limit">
+  <strong>Honestly stated:</strong> a witness answering aloud has been produced in
+  testing but not yet heard by a human in the browser. Opposing counsel and the
+  bench have both been confirmed audible in distinct voices from live microphone
+  input.
+</div>
+
+<h2><span class="num">07</span>Evaluation</h2>
+
+<p>
+  Every claim in this document has a command behind it. The harness calls the same
+  functions the application calls — never a copy — so it cannot drift away from the
+  product it measures.
+</p>
+
+<h3>Information-retrieval metrics</h3>
+
+<ul>
+  <li><strong>hit@k</strong> — the fraction of queries where a correct provision appears in the top k results.</li>
+  <li><strong>Mean Reciprocal Rank</strong> — the average of one divided by the rank of the first correct result. Finding the right provision at position one scores 1.0; at position four, 0.25. It rewards being right <em>first</em>, which is what matters when a judge reads the top hit.</li>
+</ul>
+
+<h3>Classification metrics for the objection decision</h3>
+
+<p>
+  Opposing counsel's decision to object is scored over thirty-two labelled
+  scenarios, including seven proper questions that exist purely to catch
+  over-objection — an advocate who objects to everything is noise, not opposition.
+</p>
+
+<table>
+  <tr><th>Metric</th><th>Meaning</th><th class="num">Mean of 3 runs</th></tr>
+  <tr><td>Recall</td><td>Of the objections that should have been raised, how many were</td><td class="num">1.00</td></tr>
+  <tr><td>Precision</td><td>Of the objections raised, how many should have been</td><td class="num">0.98</td></tr>
+  <tr><td>F1 score</td><td>The harmonic mean of precision and recall, penalising a system strong in one and weak in the other</td><td class="num">0.99</td></tr>
+  <tr><td>Specificity</td><td>Of the proper questions, how many drew silence</td><td class="num">—</td></tr>
+</table>
+
+<div class="measured">
+  <strong>Zero routing leaks across all 32 scenarios, every run.</strong> A sustained
+  objection has never once been followed by a witness answer. That is asserted by
+  the graph, so a violation would be a structural bug rather than a model's opinion.
+</div>
+
+<div class="limit">
+  <strong>Quote the mean, never a single run.</strong> One of those three runs scored
+  a perfect thirty-two out of thirty-two, which is exactly the trap. Precision drifts
+  by one scenario between identical runs, and the bench's ruling accuracy has been
+  observed between 89 and 100 per cent with no change to the judge. Single-run
+  figures for those two are not evidence.
+</div>
+
+<h3>Large Language Model as judge</h3>
+
+<p>
+  The grader is itself a model, so it must be graded. Three transcripts of the same
+  case at deliberately different quality are scored repeatedly, testing two things:
+  <strong>reliability</strong> (does the same transcript get the same mark twice?)
+  and <strong>discrimination</strong> (are strong, mixed, and weak advocacy ranked
+  correctly?).
+</p>
+
+<div class="measured">
+  <strong>3 of 3</strong> transcript pairs ranked as expected, every run. Strong
+  85–88, mixed 55–58, weak 25–35. Citation accuracy collapses from
+  <strong>100 per cent</strong> on the strong transcript to <strong>0 per cent</strong>
+  on the weak one, whose citations are fabricated — so the guard is exercised at the
+  same time.
+</div>
+
+<h3>Adversarial testing</h3>
+
+<p>
+  Transcribed speech reaches the agents' prompts verbatim, so a student can say
+  anything a prompt injection can contain. Thirty-six attacks are put through the
+  courtroom and the verdict scorer, scored by objective detectors rather than
+  opinion: a <strong>canary token</strong> the agent would never otherwise say,
+  distinctive phrases leaking from system prompts, an agent breaking character to
+  describe itself as a model, and fabricated citations.
+</p>
+
+<div class="measured">
+  <strong>0 of 36 attacks obeyed.</strong> Reproduce with
+  <code>pnpm run eval:redteam</code>. The defence is the multi-agent design itself:
+  an injected instruction arrives in front of an agent whose entire job is to object
+  to improper questions, and it gets objected to as irrelevant.
+</div>
+
+<p>
+  A dedicated prompt-injection guard is <em>deliberately not built</em>. The
+  discipline is to build it when an attack lands, and to add the attack to the suite
+  first — a guard with nothing to guard against cannot be shown to work.
+</p>
+
+<h2><span class="num">08</span>Operations for language-model systems</h2>
+
+<h3>Cost and latency metering</h3>
+
+<p>
+  Instrumentation wraps the shared OpenAI client rather than the individual call
+  sites. Eight places in the service reach the interface, and a cost figure that
+  quietly misses one is worse than no figure, because it looks authoritative.
+  Wrapping the client once means a call site added tomorrow is counted whether or
+  not anyone remembers.
+</p>
+
+<h3>The objection cascade</h3>
+
+<p>
+  Opposing counsel screens <em>every</em> question put to a witness, and the honest
+  answer to most is "no objection" — a decision that does not need the expensive
+  model. The cheap model takes that majority; anything it wants to object to is
+  re-decided by the stronger model before it reaches the student, because a wrong
+  objection teaches a law student a wrong rule.
+</p>
+
+<div class="measured">
+  <strong>0.95 United States cents per turn</strong> with the cascade enabled:
+  0.20 cents for a silent turn, 1.53 cents for an objected one. The split matters —
+  the silent turn is the common case and the one the voice session waits on.
+</div>
+
+<h3>Experiment tracking</h3>
+
+<p>
+  Every evaluation run is recorded to MLflow: the metrics, the settings that
+  produced them, the commit identifier, whether the working tree was dirty, and the
+  full printed report as an attachment. Parameters are read from the settings object
+  rather than passed in by hand — the setting somebody forgets to log is precisely
+  the one that moved the metric.
+</p>
+
+<p>
+  The report is stored beside the metrics because the metrics tell you hit@1 fell
+  while only the report tells you <em>which query missed</em>.
+</p>
+
+<h2><span class="num">09</span>Data, persistence and security</h2>
+
+<h3>One schema, one owner</h3>
+
+<p>
+  The database is PostgreSQL. The schema is defined once, in TypeScript, using the
+  Drizzle object-relational mapper. The Python service reads and writes the same
+  tables with raw Structured Query Language and never defines or migrates a table —
+  there is deliberately no second schema definition to drift out of step.
+</p>
+
+<h3>Authentication</h3>
+
+<table>
+  <tr><th>Mechanism</th><th>How it works</th></tr>
+  <tr><td>Password storage</td><td>The scrypt key-derivation function — deliberately slow and memory-hard, so guessing costs real time</td></tr>
+  <tr><td>Session token</td><td>Stateless: user identifier, expiry, and a Hash-based Message Authentication Code signature. No token table to keep in step</td></tr>
+  <tr><td>Signature check</td><td>Constant-time comparison, so an attacker cannot learn the signature from how long a rejection takes</td></tr>
+  <tr><td>Rate limiting</td><td>Two counters, one per email address and one per network address — either alone has a failure mode</td></tr>
+  <tr><td>Uniform failure</td><td>An unknown email is compared against a decoy hash so a wrong address and a wrong password take the same time and return the same message</td></tr>
+</table>
+
+<p>
+  Every route touching a student's own record sits behind an authentication check.
+  The case library stays public, because it is shared.
+</p>
+
+<h2><span class="num">10</span>What this system does not do</h2>
+
+<p>
+  Being able to say this clearly is part of the defence, not a weakness in it.
+</p>
+
+<ul>
+  <li><strong>Fifty-three provisions.</strong> Real practice touches thousands. Every retrieval figure is excellent <em>over this corpus</em>, and should always be quoted that way.</li>
+  <li><strong>Criminal matters only.</strong> Case drafting is restricted to the one area of law the corpus can actually ground.</li>
+  <li><strong>Counsel gets no right of reply to an objection.</strong> A real bench hears you before ruling. This is the most conspicuous departure from real practice and the top item of future work.</li>
+  <li><strong>Opposing counsel never examines a witness</strong>, and there is no re-examination phase.</li>
+  <li><strong>The bench never interrupts.</strong> The design is turn-based; a real judge cuts in mid-sentence.</li>
+  <li><strong>It runs locally.</strong> No container image and no continuous integration yet, so it is a working system rather than a deployed one.</li>
+</ul>
+
+<footer>
+  <p class="apparatus">
+    Every figure in this document is reproducible by the command printed beside it ·
+    golden sets in <span style="font-family:var(--mono);text-transform:none">eval/datasets/</span> ·
+    recorded baselines in <span style="font-family:var(--mono);text-transform:none">docs/evaluation.md</span>
+  </p>
+</footer>
+
+</div>

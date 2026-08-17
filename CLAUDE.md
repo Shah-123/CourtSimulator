@@ -151,7 +151,9 @@ This repo already makes decisions on measurement. Preserve that standard.
   leaks, with precision / F1 / ground accuracy averaging 0.98-0.99 over 3 runs
   (a single run often reads 1.00 — quote the mean, see `docs/evaluation.md`);
   cost $0.0095/turn with the cascade on ($0.0020 silent / $0.0153 objected);
-  red-team 0/36 attacks obeyed. `pnpm run eval` now prints its own spend per
+  witness 0/9 fabrications on questions it could not know and 17/17 outcomes
+  correct (`eval:witness`); red-team 0/36 attacks obeyed.
+  `pnpm run eval` now prints its own spend per
   section, so quote the figure it reports rather than estimating. **Report the
   numbers, including when they get worse.**
 - **`agentFabricated`, not `hallucinated`, is what you show a student.** The raw
@@ -169,8 +171,9 @@ This repo already makes decisions on measurement. Preserve that standard.
   20) on different days. Use `--runs 3` and quote the mean, or say it is one run.
 - `pnpm run eval` covers retrieval and the judge only; it does **not** import
   `app.agents.*`, so a change to agent prompts or graph orchestration is not
-  measured by it. That is what `eval:courtroom` is for — do not report the fast
-  gate as evidence for an agent change.
+  measured by it. That is what `eval:courtroom` is for — and `eval:witness` for
+  a change to `app/agents/witness.py`, which neither of the other two touches.
+  Do not report the fast gate as evidence for an agent change.
 - **The eval calls the same code the app calls** (`search_statutes`,
   `app.verdict.score_session`) — never a copy. Keep it that way, or the harness
   stops measuring the product.
@@ -187,6 +190,13 @@ Read the relevant subsystem doc first; they are current and specific:
 `artifacts/ai-service/docs/agents.md`, `docs/retrieval.md`, `docs/evaluation.md`,
 plus the root `README.md`. Read neighbouring code to find the existing pattern
 before inventing one.
+
+`docs/technical-concepts.html` explains every technique the system uses — why
+Best Matching 25 sits beside embeddings, why the dimension is 1536, why the
+reranker is a model rather than a cross-encoder — with the measured figure and
+the command behind each. It is written for the viva panel rather than for an
+engineer, so it is the fastest way to get the whole picture; the subsystem docs
+are still where the detail lives. `docs/poster.html` is the single graded slide.
 
 ### Implementation
 
@@ -209,7 +219,17 @@ Run what applies; do not claim a gate you skipped.
 ```bash
 pnpm run typecheck                    # all libs, apps, scripts
 pnpm run build                        # typecheck + production bundles
-pnpm run eval                         # retrieval + judge metrics
+pnpm run eval                         # retrieval + judge metrics (the fast gate)
+```
+
+Agent changes are not covered by the fast gate. Run the one that measures what
+you touched, and quote the mean of `--runs 3` for anything in §3's noisy list:
+
+```bash
+pnpm run eval:courtroom --runs 3      # objection decision, ruling, routing leaks
+pnpm run eval:witness                 # witness grounding and fabrication rate
+pnpm run eval:redteam                 # 36 prompt injections through the courtroom
+pnpm run eval:ui                      # MLflow, to compare runs
 ```
 
 ```bash
@@ -343,6 +363,13 @@ pnpm workspace · Node 24 · Python 3.12+ · PostgreSQL with `pg_trgm` · a **si
 two levels up). Dev servers: `pnpm run dev:ai` (:8000), `pnpm run dev:api`
 (:5000), `pnpm run dev` (:5173). Windows host — prefer the documented pnpm
 scripts over hand-rolled shell.
+
+**`AUTH_SECRET` (32+ characters) has no default and is the one variable whose
+absence is not obvious.** The server boots, `/cases` serves, and sign-in returns
+500 — because `getSecret()` throws lazily, only when a token is signed. A tree
+whose `.env` predates the scoping work looks healthy until someone registers.
+Generate one with
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 
 ---
 

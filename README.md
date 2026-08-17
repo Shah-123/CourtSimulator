@@ -243,8 +243,12 @@ Built and working: contract-first API, hybrid RAG with citation verification,
 grounded case/objection/verdict generation, two-tier agent memory, the
 multi-agent courtroom (LangGraph agents with tool use and autonomous
 objections), an evaluation harness covering retrieval, the AI judge and the
-courtroom agents (32 labelled objection scenarios: objection F1 1.00,
-specificity 1.00, ground accuracy 100%), and the voice session — spoken turns run through the same graph as text turns, and each agent
+courtroom agents (32 labelled objection scenarios: objection **recall 1.00** and
+0 sustained-objection routing leaks, with F1 0.99, precision 0.98 and ground
+accuracy 0.98 as means over three runs — a single run often reads 1.00 and that
+is the trap, see [evaluation.md](artifacts/ai-service/docs/evaluation.md)), a
+witness grounding eval (0/9 fabrications, 17/17 outcomes correct), and the voice
+session — spoken turns run through the same graph as text turns, and each agent
 answers in its own synthesized voice.
 
 The voice path has been driven end to end with synthesized student audio: one
@@ -253,8 +257,14 @@ opposing counsel taking the floor at 6.9s and **first audio at 8.1s** (down from
 16.1s — agent events stream out of the graph as each node completes, so the
 objection is spoken while the bench is still reading statute). Citation audit
 1/1 verified, and every citation is audited *before* its line is spoken.
-**Microphone capture and browser playback are still untested**; that needs a
-real device.
+
+**Microphone capture and browser playback were confirmed on 17 August 2026**: a
+leading question spoken into a real microphone drew opposing counsel's objection
+and the bench's ruling, both audible in distinct voices. The transcription leg is
+proved separately in code — a real 48 kHz WebM/Opus blob, the format Chrome's
+MediaRecorder produces, returns its input word-for-word with no conversion step.
+Still unheard: a witness *answering*. That run ended in a sustained objection,
+where the graph routes to `END` and silence is the correct behaviour.
 
 Generated cases are drafted as **filings, not summaries**: a case now carries a
 brief with numbered facts, lettered grounds and an itemised prayer, and the
