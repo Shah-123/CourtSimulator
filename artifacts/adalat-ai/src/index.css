@@ -69,7 +69,6 @@
   --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Newsreader', ui-serif, Georgia, serif;
   --font-mono: 'Courier Prime', ui-monospace, 'Courier New', monospace;
-  --font-urdu: 'Noto Nastaliq Urdu', serif;
 
   --radius-sm: calc(var(--radius) - 1px);
   --radius-md: var(--radius);
@@ -223,12 +222,6 @@
 }
 
 @layer components {
-  /* The masthead's Urdu half */
-  .wordmark-urdu {
-    font-family: var(--font-urdu);
-    line-height: 2.2;
-  }
-
   /* Small caps in Courier, used for apparatus */
   .apparatus {
     @apply font-mono uppercase;

@@ -111,14 +111,8 @@ export function Layout({ children }: { children: ReactNode }) {
             href="/"
             className="flex items-center gap-3 rounded-sm p-1 transition-opacity hover:opacity-90 group"
           >
-            {/* The name of the thing, in the language of the court it models. */}
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10 border border-primary/25 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200 shadow-sm">
-              <span
-                aria-hidden="true"
-                className="wordmark-urdu text-2xl font-bold leading-none select-none"
-              >
-                عدالت
-              </span>
+              <Gavel aria-hidden="true" className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
