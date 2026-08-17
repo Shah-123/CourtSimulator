@@ -1,0 +1,406 @@
+<title>CourtSimulator</title>
+
+<style>
+  /* The product's own tokens, lifted from artifacts/adalat-ai/src/index.css so
+     the poster reads as the same object the judges will be shown running.
+     Committed to one appearance: a court record has one. Every colour is
+     painted explicitly, so the slide holds on either host ground. */
+  :root {
+    --ground: #e9ebe4;   /* cause-list newsprint */
+    --paper:  #fafbf6;   /* fresh paper */
+    --ink:    #1a1f27;   /* blue-black ink */
+    --ink-2:  #5b626c;   /* secondary ink, biased to the ground's hue */
+    --rule:   #c7cabf;   /* hairline */
+    --primary:#4c2f78;   /* court duplicating ink */
+    --stamp:  #c03d24;   /* objection, and nothing else */
+    --seal:   #255b48;   /* verified against the statute book */
+    --seal-wash: #e4efe9;
+    --stamp-wash:#f7e6e2;
+
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --mono: 'Courier New', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  /* The slide is sized by its own width, and every dimension inside is in cqw.
+     That makes it fill a projector exactly, scale to any screen, and print
+     without a single reflow. */
+  .slide {
+    container-type: inline-size;
+    width: 100%;
+    max-width: 1600px;
+    aspect-ratio: 16 / 9;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow: 0 1px 0 var(--rule);
+    padding: 1.8cqw 2.4cqw 1.6cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 1.05cqw;
+    overflow: hidden;
+  }
+
+  .apparatus {
+    font-family: var(--sans);
+    font-size: 0.78cqw;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  /* ---- masthead ---------------------------------------------------- */
+
+  header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 1.6cqw;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 0.8cqw;
+  }
+
+  .wordmark { display: flex; align-items: baseline; gap: 0.7cqw; }
+
+  .wordmark .urdu {
+    font-family: 'Noto Nastaliq Urdu', var(--serif);
+    font-size: 2.1cqw;
+    color: var(--primary);
+    line-height: 1;
+  }
+
+  .wordmark .name {
+    font-family: var(--serif);
+    font-size: 2.35cqw;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+
+  .thesis {
+    font-family: var(--serif);
+    font-size: 1.16cqw;
+    line-height: 1.42;
+    max-width: 46cqw;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  .thesis b { color: var(--primary); font-weight: 600; }
+
+  .whoami { text-align: right; line-height: 1.9; }
+
+  /* ---- the diagram ------------------------------------------------- */
+
+  /* min-height:0 lets the figure shrink inside the flex column; without it a
+     flex item refuses to go below its content and pushes the evidence strip
+     off the bottom of the slide. */
+  figure {
+    margin: 0;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5cqw;
+  }
+  figure svg { width: 100%; height: 100%; min-height: 0; display: block; }
+
+  figcaption {
+    font-family: var(--serif);
+    font-size: 0.95cqw;
+    color: var(--ink-2);
+    font-style: italic;
+  }
+
+  /* ---- evidence ---------------------------------------------------- */
+
+  .evidence {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border-top: 2px solid var(--ink);
+    border-left: 1px solid var(--rule);
+  }
+
+  .fig {
+    border-right: 1px solid var(--rule);
+    padding: 0.6cqw 0.85cqw 0.45cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 0.14cqw;
+  }
+
+  .fig .n {
+    font-family: var(--serif);
+    font-size: 1.75cqw;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .fig .n.seal  { color: var(--seal); }
+  .fig .n.stamp { color: var(--stamp); }
+
+  .fig .what {
+    font-family: var(--serif);
+    font-size: 0.86cqw;
+    line-height: 1.3;
+  }
+
+  .fig .cmd {
+    font-family: var(--mono);
+    font-size: 0.66cqw;
+    color: var(--ink-2);
+    margin-top: 0.12cqw;
+  }
+
+  .fig .caveat {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.68cqw;
+    color: var(--ink-2);
+    line-height: 1.25;
+  }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1cqw;
+    border-top: 1px solid var(--rule);
+    padding-top: 0.6cqw;
+  }
+
+  @media print {
+    body { padding: 0; background: var(--paper); }
+    .slide { border: none; box-shadow: none; max-width: none; }
+    @page { size: A3 landscape; margin: 8mm; }
+  }
+</style>
+
+<div class="slide">
+
+  <header>
+    <div class="wordmark">
+      <span class="urdu">عدالت</span>
+      <span class="name">CourtSimulator</span>
+    </div>
+
+    <p class="thesis">
+      A voice-first moot court for Pakistani law students. Three AI agents hold a
+      hearing against you — and <b>every provision they cite is checked against
+      the statute book before it is spoken.</b>
+    </p>
+
+    <div class="whoami">
+      <div class="apparatus">Multi-agent&nbsp;·&nbsp;RAG&nbsp;·&nbsp;LLMOps</div>
+      <div class="apparatus">LangGraph&nbsp;·&nbsp;FastAPI&nbsp;·&nbsp;Express&nbsp;·&nbsp;React</div>
+      <div class="apparatus">PostgreSQL&nbsp;+&nbsp;pg_trgm</div>
+    </div>
+  </header>
+
+  <figure>
+    <svg viewBox="0 0 1600 500" preserveAspectRatio="xMidYMid meet" role="img"
+         aria-label="One spoken question routes through opposing counsel, the bench and the witness. Opposing counsel screens every question and may object; the bench runs a ReAct loop calling search_statute against a hybrid retrieval pipeline over 53 statute provisions; a sustained objection strikes the question so the witness never answers, while overruled or unobjected questions reach the witness, whose four possible outcomes include declining to answer. Every utterance passes a citation audit before it is spoken.">
+
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="a-stamp" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#c03d24"/>
+        </marker>
+      </defs>
+
+      <!-- Tracking is inherited in SVG, so one declaration opens up every label
+           at once. Projected type needs looser tracking than screen type, and
+           the diagram renders at ~0.92 scale, which tightens it further. -->
+      <g fill="none" stroke="currentColor" stroke-width="1.5" color="#1a1f27"
+         letter-spacing="0.55">
+
+        <text x="14" y="13" font-family="system-ui,sans-serif" font-size="11"
+              letter-spacing="1.7" fill="#5b626c">LANGGRAPH STATEGRAPH — THE SUPERVISOR IS THE CONDITIONAL EDGES, NOT A PROMPT</text>
+        <line x1="14" y1="22" x2="1586" y2="22" stroke="#c7cabf" stroke-width="1"/>
+
+        <!-- sustained: the question is struck -->
+
+        <rect x="1002" y="30" width="330" height="58" fill="#f7e6e2" stroke="#c03d24" stroke-width="2"/>
+        <text x="1167" y="54" text-anchor="middle" font-family="Georgia,serif"
+              font-size="18" font-weight="700" fill="#c03d24">Question struck</text>
+        <text x="1167" y="76" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12.5" fill="#c03d24">the witness never answers it</text>
+
+        <!-- the turn: student, counsel, bench -->
+
+        <rect x="14" y="100" width="176" height="94" fill="#e9ebe4" stroke="#1a1f27"/>
+        <text x="102" y="132" text-anchor="middle" font-family="Georgia,serif"
+              font-size="19" font-weight="700" fill="#1a1f27">Student</text>
+        <text x="102" y="155" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">speaks a question</text>
+        <text x="102" y="176" text-anchor="middle" font-family="'Courier New',monospace"
+              font-size="11" fill="#5b626c">webm &#8594; whisper</text>
+
+        <line x1="190" y1="147" x2="254" y2="147" marker-end="url(#a)"/>
+
+        <rect x="256" y="100" width="272" height="94" fill="#fafbf6" stroke="#1a1f27" stroke-width="2"/>
+        <text x="392" y="120" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="10.5" letter-spacing="1.6" fill="#5b626c">AGENT 1</text>
+        <text x="392" y="144" text-anchor="middle" font-family="Georgia,serif"
+              font-size="19" font-weight="700" fill="#1a1f27">Opposing counsel</text>
+        <text x="392" y="164" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">screens every question and objects</text>
+        <text x="392" y="181" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">on a ground drawn from the corpus</text>
+
+        <line x1="528" y1="147" x2="596" y2="147" marker-end="url(#a)"/>
+        <!-- Keeps its own tracking: this label floats in the 70-unit gap between
+             two boxes, and the group's looser setting made it span the whole gap
+             and touch both edges. -->
+        <text x="562" y="139" text-anchor="middle" font-family="'Courier New',monospace"
+              font-size="11.5" letter-spacing="0" fill="#1a1f27">objection</text>
+
+        <rect x="598" y="100" width="272" height="94" fill="#fafbf6" stroke="#1a1f27" stroke-width="2"/>
+        <text x="734" y="120" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="10.5" letter-spacing="1.6" fill="#5b626c">AGENT 2</text>
+        <text x="734" y="144" text-anchor="middle" font-family="Georgia,serif"
+              font-size="19" font-weight="700" fill="#1a1f27">The Bench</text>
+        <text x="734" y="164" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">ReAct loop bounded at 3 rounds —</text>
+        <text x="734" y="181" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">reads the statute before it rules</text>
+
+        <path d="M870 124 L940 124 L940 59 L1000 59" stroke="#c03d24" marker-end="url(#a-stamp)"/>
+        <text x="905" y="117" text-anchor="middle" font-family="'Courier New',monospace"
+              font-size="12" fill="#c03d24">sustained</text>
+
+        <path d="M870 170 L940 170 L940 259 L998 259" marker-end="url(#a)"/>
+        <text x="905" y="187" text-anchor="middle" font-family="'Courier New',monospace"
+              font-size="12" fill="#1a1f27">overruled</text>
+
+        <path d="M392 194 L392 286 L998 286" stroke-dasharray="5 4" stroke="#5b626c"
+              marker-end="url(#a)"/>
+        <text x="420" y="278" font-family="'Courier New',monospace"
+              font-size="12" fill="#5b626c">no objection — counsel stays silent</text>
+
+        <!-- the witness -->
+
+        <rect x="1000" y="212" width="332" height="94" fill="#fafbf6" stroke="#1a1f27" stroke-width="2"/>
+        <text x="1166" y="232" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="10.5" letter-spacing="1.6" fill="#5b626c">AGENT 3</text>
+        <text x="1166" y="256" text-anchor="middle" font-family="Georgia,serif"
+              font-size="19" font-weight="700" fill="#1a1f27">Witness</text>
+        <text x="1166" y="276" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">answer · don't recall · decline to</text>
+        <text x="1166" y="293" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">speculate · correct the record</text>
+
+        <line x1="1332" y1="259" x2="1356" y2="259" marker-end="url(#a)"/>
+        <rect x="1358" y="212" width="228" height="94" fill="#e9ebe4" stroke="#1a1f27"/>
+        <text x="1472" y="238" text-anchor="middle" font-family="Georgia,serif"
+              font-size="18" font-weight="700" fill="#1a1f27">Spoken back</text>
+        <text x="1472" y="260" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">a distinct voice per agent,</text>
+        <text x="1472" y="277" text-anchor="middle" font-family="system-ui,sans-serif"
+              font-size="12" fill="#5b626c">streamed as each one speaks</text>
+        <text x="1472" y="297" text-anchor="middle" font-family="'Courier New',monospace"
+              font-size="12" fill="#1a1f27">8.1s to first audio</text>
+
+        <!-- grounding (left) and the citation audit (right) -->
+
+        <path d="M734 194 L734 330" marker-end="url(#a)"/>
+        <text x="746" y="228" font-family="'Courier New',monospace"
+              font-size="12.5" fill="#1a1f27">search_statute(query)</text>
+        <text x="746" y="246" font-family="system-ui,sans-serif"
+              font-size="11.5" fill="#5b626c">called mid-reasoning</text>
+
+        <rect x="14" y="330" width="986" height="160" fill="#fafbf6" stroke="#1a1f27"/>
+        <text x="30" y="356" font-family="system-ui,sans-serif" font-size="10.5"
+              font-weight="700" letter-spacing="1.6" fill="#5b626c">GROUNDING — WHAT THE BENCH READS BEFORE IT RULES</text>
+        <text x="30" y="390" font-family="Georgia,serif" font-size="18" fill="#1a1f27">BM25 &#8594; dense 1536-d &#8594; RRF k=60 &#8594; LLM rerank</text>
+        <text x="30" y="416" font-family="system-ui,sans-serif" font-size="12.5" fill="#5b626c">exact cosine scan over jsonb, not an index — at this size it is faster and recall is exact</text>
+
+        <rect x="30" y="432" width="956" height="44" fill="#e4efe9" stroke="#255b48" stroke-width="2"/>
+        <text x="46" y="460" font-family="Georgia,serif" font-size="15" fill="#255b48">53 provisions · 52 diffed word-for-word against the official print · QSO 1984 · PPC · CrPC · Constitution</text>
+
+        <path d="M1166 306 L1166 330" marker-end="url(#a)"/>
+
+        <rect x="1030" y="330" width="556" height="160" fill="#fafbf6" stroke="#1a1f27"/>
+        <text x="1046" y="356" font-family="system-ui,sans-serif" font-size="10.5"
+              font-weight="700" letter-spacing="1.6" fill="#5b626c">CITATION AUDIT — ON EVERY UTTERANCE, BEFORE IT IS SPOKEN</text>
+        <text x="1046" y="384" font-family="Georgia,serif" font-size="15" fill="#1a1f27">Every provision an agent names is resolved against the corpus:</text>
+
+        <rect x="1046" y="396" width="196" height="32" fill="#f7e6e2" stroke="#c03d24"/>
+        <text x="1060" y="418" font-family="Georgia,serif" font-size="14" fill="#c03d24">&#9888; not in corpus</text>
+        <rect x="1256" y="396" width="314" height="32" fill="#f7e6e2" stroke="#c03d24"/>
+        <text x="1270" y="418" font-family="Georgia,serif" font-size="14" fill="#c03d24">&#9888; unverified — do not quote verbatim</text>
+
+        <text x="1046" y="452" font-family="Georgia,serif" font-size="14" fill="#1a1f27">The verdict's legal-reasoning score treats the audit as ground truth.</text>
+        <text x="1046" y="474" font-family="system-ui,sans-serif" font-size="11.5" fill="#5b626c">Attributed: an agent naming a fake section in order to reject it is not a fabrication.</text>
+      </g>
+    </svg>
+
+    <figcaption>
+      One spoken question, three agents acting in sequence. The witness is silent after a
+      sustained objection because the graph routes to <span style="font-family:var(--mono)">END</span> —
+      that is asserted by the edge, never left to a model to decide.
+    </figcaption>
+  </figure>
+
+  <div class="evidence">
+    <div class="fig">
+      <span class="n">1.00</span>
+      <span class="what">hit@1 after reranking, from 0.80 fusion-only</span>
+      <span class="cmd">pnpm run eval</span>
+    </div>
+
+    <div class="fig">
+      <span class="n">1.00</span>
+      <span class="what">objection recall over 32 labelled scenarios — never missed one it should raise</span>
+      <span class="cmd">pnpm run eval:courtroom --runs 3</span>
+      <span class="caveat">F1 0.99, precision 0.98 as 3-run means</span>
+    </div>
+
+    <div class="fig">
+      <span class="n seal">0 / 36</span>
+      <span class="what">prompt-injection attacks obeyed</span>
+      <span class="cmd">pnpm run eval:redteam</span>
+    </div>
+
+    <div class="fig">
+      <span class="n seal">0 / 9</span>
+      <span class="what">witness fabrications on questions it could not know</span>
+      <span class="cmd">pnpm run eval:witness</span>
+      <span class="caveat">outcome accuracy 17/17</span>
+    </div>
+
+    <div class="fig">
+      <span class="n seal">52 / 53</span>
+      <span class="what">provisions diffed against the official print</span>
+      <span class="cmd">pnpm run statutes:verify</span>
+    </div>
+
+    <div class="fig">
+      <span class="n">$0.0095</span>
+      <span class="what">metered cost per courtroom turn, cascade on</span>
+      <span class="cmd">reported per eval section</span>
+      <span class="caveat">$0.0020 silent · $0.0153 objected</span>
+    </div>
+  </div>
+
+  <footer>
+    <span class="apparatus">Every figure is reproducible by the command beneath it · golden sets in <span style="font-family:var(--mono);text-transform:none">eval/datasets/</span></span>
+    <span class="apparatus">Ruling accuracy is deliberately absent — it swings 89–100% between runs, and one number would misstate it</span>
+  </footer>
+
+</div>
