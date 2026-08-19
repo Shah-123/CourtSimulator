@@ -279,13 +279,30 @@ rather than taught. Generation itself moved out of the Express route and behind
 the AI service, so the only prompt left on the Node side is the manually-raised
 objection ruling.
 
-The web app presents a session as a **record of proceedings** rather than a chat
-log: numbered paragraphs, a ruled speaker column, and a provenance rail carrying
+The web app presents a session as a **courtroom** rather than a chat log. The
+screen is the room — the bench at the back under the key light, counsel either
+side of the well, the witness box empty until someone is called — drawn as
+layered 2.5D planes rather than a 3D scene, and every state it shows is derived
+from turns the API already returned or events the voice stream already sends.
+Whoever holds the floor is lit; calling a witness walks a figure into the box;
+a ruling stamps the room in seal green or stamp vermilion. Advancing a stage
+empties the box, because the graph stops routing to a witness at the same
+moment.
+
+Behind it, the **record of proceedings** is unchanged and one keystroke away:
+numbered paragraphs, a ruled speaker column, and a provenance rail carrying
 every provision an agent relied on beside the words it produced. The rail reads
 the corpus's own `verified` flag per provision, so 52 of 53 now read ✓ verified
 while Constitution Art. 199 — the one provision whose source is out of date —
 reads ⚠, and a citation the corpus does not recognise is marked too, rather than
-passing silently.
+passing silently. The courtroom's subtitle bar renders the same live caption
+component the sidebar used, for the same reason: speech cannot carry a badge, so
+the warning appears beside the words while they are being spoken.
+
+A student without a working microphone is no longer locked out of arguing.
+`POST /sessions/:id/turn` has existed since the courtroom graph landed and the
+web app had never called it; the chamber's **Address** control does, so a
+written submission reaches the same agents and the same audit as a spoken one.
 
 Note that a case stores its `citations` as a snapshot taken when it was
 generated, so cases drafted before the corpus was verified still show ⚠ against
