@@ -6,7 +6,7 @@ import {
   type AppEvent,
 } from "@workspace/integrations-openai-ai-react/audio";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, Volume2, Radio, Activity } from "lucide-react";
+import { Mic, Square, Loader2, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/components/api-state";
 import {
@@ -56,12 +56,20 @@ function parseSpeakerCue(event: AppEvent): SpeakerCue | null {
 
 const TICKS = 32;
 
+/**
+ * The needle on the recording.
+ *
+ * Sat in a bordered, tinted well and ran seal → primary → stamp as it rose,
+ * which read as a three-band warning: a student speaking loudly enough was
+ * shown the same red the record uses for an unverified provision. It is a
+ * level, not a verdict, so it is one colour on a bare baseline now.
+ */
 function LevelRule({ level, live }: { level: number; live: boolean }) {
   const lit = live ? Math.min(TICKS, Math.round((level / 0.22) * TICKS)) : 0;
 
   return (
     <div
-      className="flex h-5 items-end gap-[3px] bg-secondary/30 px-2 py-1 rounded-sm border border-rule/50 w-full justify-between"
+      className="flex h-5 w-full items-end justify-between gap-[3px] border-b border-rule"
       role="presentation"
       aria-hidden="true"
     >
@@ -69,16 +77,10 @@ function LevelRule({ level, live }: { level: number; live: boolean }) {
         <span
           key={i}
           className={cn(
-            "w-[2px] rounded-full transition-all duration-75",
-            i < lit
-              ? i > TICKS * 0.75
-                ? "bg-stamp"
-                : i > TICKS * 0.4
-                ? "bg-primary"
-                : "bg-seal"
-              : "bg-rule/70",
+            "w-[2px] transition-all duration-75",
+            i < lit ? "bg-foreground/70" : "bg-rule",
           )}
-          style={{ height: i < lit ? `${35 + (i / TICKS) * 65}%` : "20%" }}
+          style={{ height: i < lit ? `${35 + (i / TICKS) * 65}%` : "18%" }}
         />
       ))}
     </div>
@@ -241,93 +243,75 @@ export function VoiceControl({
 
   return (
     <div className="space-y-4">
-      {/* Dynamic Action Button */}
+      {/* One control, and it says what pressing it does rather than what state
+          the machine is in. Stamp while the record is open, because that is
+          the one moment the student is on the record and needs to know it. */}
       <Button
         onClick={handleToggleRecord}
         disabled={disabled || isProcessing || isPlaying || isInterrupting}
         className={cn(
-          "h-12 w-full justify-center text-sm font-semibold transition-all duration-200 shadow-sm",
-          isRecording
-            ? "bg-stamp text-stamp-foreground hover:bg-stamp/90 animate-pulse border-2 border-stamp/40"
-            : isProcessing
-            ? "bg-secondary text-foreground"
-            : isPlaying
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-primary text-primary-foreground hover:bg-primary/90",
+          "h-12 w-full justify-center rounded-sm text-sm",
+          isRecording &&
+            "border-stamp bg-stamp text-stamp-foreground hover:bg-stamp",
+          isProcessing && "border-secondary-border bg-secondary text-foreground",
         )}
       >
         {isRecording ? (
           <>
-            <Square className="mr-2 h-4 w-4 fill-current text-stamp-foreground" />
-            <span>Finish Argument & Yield to Bench</span>
+            <Square className="h-4 w-4 fill-current" />
+            <span>Sit down and yield</span>
           </>
         ) : isProcessing ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-            <span>The Bench is Considering...</span>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>The court is considering</span>
           </>
         ) : isPlaying || isInterrupting ? (
           <>
-            <Volume2 className="mr-2 h-4 w-4 animate-bounce" />
-            <span>Court Floor Active (Speak to Object)</span>
+            <Volume2 className="h-4 w-4" />
+            <span>The floor is theirs — speak to object</span>
           </>
         ) : (
           <>
-            <Mic className="mr-2 h-4 w-4" />
-            <span>Take Rostrum (Speak Argument)</span>
+            <Mic className="h-4 w-4" />
+            <span>Take the rostrum</span>
           </>
         )}
       </Button>
 
-      {/* Voice Activity Level Visualizer */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <LevelRule level={level} live={isRecording} />
-        <div className="flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1.5 font-mono text-[0.6875rem] text-muted-foreground">
-            {isRecording ? (
-              <span className="flex items-center gap-1 text-stamp font-semibold">
-                <Radio className="h-3 w-3 animate-ping text-stamp" />
-                Mic Active · Record Open
-              </span>
-            ) : isProcessing ? (
-              <span className="flex items-center gap-1 text-primary font-semibold">
-                <Activity className="h-3 w-3 animate-spin text-primary" />
-                Bench Deliberating
-              </span>
-            ) : isPlaying ? (
-              <span className="flex items-center gap-1 text-seal font-semibold">
-                <Volume2 className="h-3 w-3 text-seal" />
-                Audio Streaming
-              </span>
-            ) : (
-              <span className="text-muted-foreground">Rostrum Ready</span>
+        <div className="flex items-baseline justify-between gap-3">
+          <span
+            className={cn(
+              "apparatus",
+              isRecording ? "text-stamp" : "text-muted-foreground",
             )}
-          </span>
-          <span className="apparatus text-muted-foreground text-[0.625rem]">
+          >
             {isRecording
-              ? "Speaking"
+              ? "On the record"
               : isProcessing
-              ? "Analyzing"
-              : isPlaying
-              ? "Barge-in enabled"
-              : disabled
-              ? "Session Concluded"
-              : "Ready"}
+                ? "Deliberating"
+                : isPlaying
+                  ? "Speaking"
+                  : disabled
+                    ? "Hearing concluded"
+                    : "Ready"}
+          </span>
+          <span className="apparatus text-muted-foreground">
+            {isPlaying ? "Interruption open" : ""}
           </span>
         </div>
       </div>
 
       {isPlaying && cue && (
-        <div className="flex items-center gap-2 p-2 rounded-sm bg-primary/10 border border-primary/20">
-          <Volume2 className="h-4 w-4 text-primary shrink-0 animate-pulse" />
-          <p className="apparatus text-primary font-bold text-xs truncate">
-            {speakerLabel(cue)} is addressing the courtroom
-          </p>
-        </div>
+        <p className="apparatus truncate border-l-2 border-primary pl-3 text-primary">
+          {speakerLabel(cue)} has the floor
+        </p>
       )}
 
       {note && (
-        <p className="record-entry border-l-primary/60 bg-secondary/30 p-2 font-serif text-xs leading-relaxed text-muted-foreground rounded-r-sm">
+        <p className="border-l-2 border-rule pl-3 font-serif text-sm leading-relaxed text-muted-foreground">
           {note}
         </p>
       )}

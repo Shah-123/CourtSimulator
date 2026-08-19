@@ -7,141 +7,110 @@ import {
   type Freshness,
   type Section,
 } from "@/data/evidence";
-import {
-  FileCheck2,
-  Scale,
-  ShieldCheck,
-  Terminal,
-  ExternalLink,
-  BookOpen,
-  Sparkles,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * What has actually been measured, and by which command.
+ *
+ * The page every claim in this project has to survive, so it is set as a
+ * report of findings: the figure, the command that produced it, and the caveat
+ * where there is one. It was a stack of gradient-filled cards with an icon in a
+ * tinted square per section, which made a page of measurements look like a
+ * marketing sheet — the one impression this particular page cannot afford.
+ */
 export default function EvidencePage() {
   return (
-    <div className="mx-auto max-w-5xl pb-20 space-y-10">
-      {/* Header Banner */}
-      <header className="court-card p-6 sm:p-8 bg-card border border-rule shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule/60 pb-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-seal/20 bg-seal/5 px-2.5 py-1 text-xs font-mono uppercase text-seal">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Empirical Legal Verification & Benchmarks</span>
-          </div>
-          <span className="apparatus text-muted-foreground text-xs">
-            Measured: {MEASURED_ON}
-          </span>
-        </div>
+    <div className="mx-auto max-w-3xl space-y-12 pb-20">
+      <header className="masthead-rule pb-7">
+        <p className="apparatus flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+          <span>Evidence</span>
+          <span aria-hidden="true">·</span>
+          <span>Measured {MEASURED_ON}</span>
+        </p>
 
-        <div className="space-y-2 max-w-3xl">
-          <h1 className="text-balance font-serif text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
-            Corpus Integrity & Agent Grounding
-          </h1>
-          <p className="font-serif text-sm sm:text-base leading-relaxed text-muted-foreground">
-            Every metric below is generated from deterministic golden test sets and reproducible evaluation harnesses.
-            All legal propositions are strictly audited against official statutes from <strong className="text-foreground font-semibold">pakistancode.gov.pk</strong>.
-          </p>
-        </div>
+        <h1 className="display mt-4">What has been measured</h1>
+
+        <p className="standfirst mt-5">
+          Every figure below comes from a golden set and a command you can run
+          again. Where a number is noisy across runs, the caveat says so rather
+          than quoting the best one.
+        </p>
       </header>
 
-      {/* Statute Corpus Health Overview */}
-      <section className="court-card p-6 bg-gradient-to-br from-card via-card to-seal-wash/20 border border-seal/30 shadow-xs space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule/60 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-sm bg-seal/10 text-seal">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-serif text-xl font-bold text-foreground">
-                Pakistan Statutory Law Corpus
-              </h2>
-              <p className="apparatus text-[0.625rem] text-muted-foreground">
-                Ground-truth database for Bench deliberation & objections
+      {/* The corpus. The one figure on this page that is about the law rather
+          than about the system reading it. */}
+      <section>
+        <h2 className="rule-heading">
+          <span>The statutory corpus</span>
+          <Command>{CORPUS.command}</Command>
+        </h2>
+
+        <p className="mt-6 font-serif text-[2rem] leading-tight tracking-[-0.018em] text-foreground">
+          <span className="tabular-nums text-seal">{CORPUS.confirmed}</span>
+          <span className="text-muted-foreground"> of </span>
+          <span className="tabular-nums">{CORPUS.total}</span> provisions diffed
+          word-for-word against their official source
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 divide-y divide-rule border-y border-rule sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+          {CORPUS.statutes.map((statute) => (
+            <div key={statute.code} className="px-0 py-4 sm:px-5 sm:first:pl-0">
+              <p className="apparatus text-muted-foreground">{statute.code}</p>
+              <p className="mt-1.5 font-serif text-2xl leading-none tabular-nums text-foreground">
+                {statute.confirmed}
+                <span className="text-sm text-muted-foreground">
+                  /{statute.total}
+                </span>
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <FreshnessMark
-              freshness={CORPUS.freshness}
-              checkedOn={CORPUS_CHECKED_ON}
-              measuredTitle={`Counted against per-provision flags in the statute files as they stand, ${CORPUS_CHECKED_ON}.`}
-            />
-            <span className="inline-flex items-center gap-1 font-mono text-xs bg-secondary/60 px-2 py-1 rounded-sm text-muted-foreground border border-rule/50">
-              <Terminal className="h-3 w-3" />
-              {CORPUS.command}
-            </span>
-          </div>
-        </div>
-
-        <div>
-          <p className="font-serif text-2xl font-bold tabular-nums text-foreground">
-            <span className="text-seal">{CORPUS.confirmed}</span>
-            <span className="text-muted-foreground font-normal text-lg"> of {CORPUS.total}</span>{" "}
-            statutory provisions verified word-for-word
-          </p>
-        </div>
-
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {CORPUS.statutes.map((statute) => (
-            <div
-              key={statute.code}
-              className="p-3.5 rounded-sm bg-secondary/30 border border-rule/60 space-y-1"
-            >
-              <dt className="apparatus text-muted-foreground text-[0.6875rem] font-bold">
-                {statute.code}
-              </dt>
-              <dd className="font-serif text-xl font-bold tabular-nums text-foreground">
-                {statute.confirmed}
-                <span className="text-xs text-muted-foreground font-normal">/{statute.total}</span>
-              </dd>
-            </div>
           ))}
-        </dl>
+        </div>
 
-        <p className="text-xs leading-relaxed text-muted-foreground bg-card p-3 rounded-sm border border-rule/50 font-serif">
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+          <FreshnessMark
+            freshness={CORPUS.freshness}
+            checkedOn={CORPUS_CHECKED_ON}
+            measuredTitle={`Counted against per-provision flags in the statute files as they stand, ${CORPUS_CHECKED_ON}.`}
+          />
+        </div>
+
+        {/* The outstanding provision is named here rather than rounded away.
+            It is the reason this reads "52 of 53" and not "verified". */}
+        <p className="mt-4 border-l-2 border-rule pl-4 font-serif leading-relaxed text-muted-foreground">
           {CORPUS.note}
         </p>
       </section>
 
-      {/* Evaluation Sections */}
-      <div className="space-y-8">
-        <h2 className="apparatus text-foreground font-bold text-sm flex items-center gap-2 border-b border-rule pb-2">
-          <Scale className="h-4 w-4 text-primary" />
-          Harness Verification Results
+      <section className="space-y-10">
+        <h2 className="rule-heading">
+          <span>What the harnesses return</span>
+          <span className="tabular-nums">{SECTIONS.length}</span>
         </h2>
-        <div className="grid grid-cols-1 gap-6">
-          {SECTIONS.map((section) => (
-            <EvidenceSection key={section.id} section={section} />
-          ))}
-        </div>
-      </div>
 
-      {/* What Measurements Changed */}
-      <section className="court-card p-6 sm:p-8 bg-card border border-rule space-y-6">
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-foreground">
-            What the Empirical Measurements Changed
-          </h2>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Architectural decisions and safeguards that were implemented as a direct result of automated evaluation harness findings:
-          </p>
-        </div>
+        {SECTIONS.map((section) => (
+          <EvidenceSection key={section.id} section={section} />
+        ))}
+      </section>
 
-        <ol className="space-y-4 divide-y divide-rule/60">
+      <section>
+        <h2 className="rule-heading">
+          <span>What the measurements changed</span>
+        </h2>
+
+        <ol className="divide-y divide-rule/70">
           {FINDINGS.map((finding, index) => (
             <li
               key={finding.title}
-              className="pt-4 first:pt-0 grid gap-x-4 gap-y-1 sm:grid-cols-[2.5rem_1fr]"
+              className="grid gap-x-5 gap-y-1 py-5 sm:grid-cols-[2.5rem_1fr]"
             >
-              <span className="apparatus tabular-nums text-primary font-bold text-sm">
-                0{index + 1}
+              <span className="apparatus pt-1 tabular-nums text-muted-foreground">
+                {String(index + 1).padStart(2, "0")}
               </span>
-              <div className="space-y-1">
-                <h3 className="font-serif text-base font-bold text-foreground">
+              <div>
+                <h3 className="font-serif text-lg font-normal leading-snug text-foreground">
                   {finding.title}
                 </h3>
-                <p className="font-serif text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 font-serif leading-relaxed text-muted-foreground">
                   {finding.body}
                 </p>
               </div>
@@ -153,6 +122,25 @@ export default function EvidencePage() {
   );
 }
 
+/** The command behind a figure, set as the command it is. */
+function Command({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="font-mono text-[0.6875rem] normal-case tracking-normal text-muted-foreground">
+      {children}
+    </code>
+  );
+}
+
+/**
+ * Whether the figure beside it was re-run against the current code.
+ *
+ * Both states were stamped, seal for measured and vermilion for a recorded
+ * baseline, which borrowed the objection colour to say "this number is a
+ * little older" — vermilion is reserved for a provision nobody has checked.
+ * The caution stays on the baseline as a ⚠, because a figure that was not
+ * re-run for this build is exactly the sort of thing a panel should be told
+ * before it is quoted; only the colour is given back.
+ */
 function FreshnessMark({
   freshness,
   checkedOn,
@@ -163,63 +151,68 @@ function FreshnessMark({
   measuredTitle?: string;
 }) {
   const isMeasured = freshness === "measured";
+
   return (
     <span
-      className={cn(
-        "judicial-stamp text-[0.625rem] px-2 py-0.5",
-        isMeasured ? "judicial-stamp-sustained" : "judicial-stamp-overruled",
-      )}
+      className={cn("apparatus", isMeasured ? "text-seal" : "text-muted-foreground")}
       title={
         isMeasured
           ? (measuredTitle ?? "Re-run against current code.")
-          : "Recorded metric."
+          : "Recorded metric — not re-run for this build."
       }
     >
-      {isMeasured ? "✓ Re-run Golden Harness" : "⚠ Baseline"}
-      {isMeasured && checkedOn ? ` (${checkedOn})` : ""}
+      {isMeasured
+        ? `✓ Re-run${checkedOn ? ` ${checkedOn}` : ""}`
+        : "⚠ Recorded baseline — not re-run for this build"}
     </span>
   );
 }
 
 function EvidenceSection({ section }: { section: Section }) {
   return (
-    <section className="court-card p-5 sm:p-6 bg-card border border-rule space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule/60 pb-3">
-        <h3 className="font-serif text-xl font-bold text-foreground">{section.title}</h3>
-        <div className="flex items-center gap-2">
-          <FreshnessMark freshness={section.freshness} />
-          <code className="apparatus text-[0.625rem] text-muted-foreground bg-secondary/50 px-2 py-1 rounded-sm border border-rule/50">
-            {section.command}
-          </code>
-        </div>
+    <article className="border-t border-rule pt-6 first:border-t-0 first:pt-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="font-serif text-xl font-normal leading-snug text-foreground">
+          {section.title}
+        </h3>
+        <Command>{section.command}</Command>
       </div>
 
-      <p className="font-serif italic text-xs sm:text-sm text-foreground/80">
-        "{section.question}"
+      {/* The question the harness was built to answer, in the words it would
+          be asked in a viva. */}
+      <p className="mt-2 max-w-2xl font-serif italic leading-relaxed text-muted-foreground">
+        {section.question}
       </p>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-2 divide-y divide-rule border-y border-rule sm:grid-cols-4 sm:divide-x sm:divide-y-0">
         {section.metrics.map((metric) => (
-          <div key={metric.label} className="bg-secondary/20 p-3.5 rounded-sm border border-rule/50 space-y-1">
-            <p className="apparatus text-muted-foreground text-[0.625rem] font-bold">{metric.label}</p>
-            <p className="font-serif text-2xl font-bold tabular-nums text-primary">
+          <div key={metric.label} className="px-0 py-4 sm:px-5 sm:first:pl-0">
+            <dt className="apparatus text-muted-foreground">{metric.label}</dt>
+            <dd className="mt-1.5 font-serif text-2xl leading-none tabular-nums text-foreground">
               {metric.value}
-            </p>
+            </dd>
             {metric.note && (
-              <p className="text-[0.6875rem] leading-snug text-muted-foreground">
+              <dd className="mt-1.5 text-xs leading-snug text-muted-foreground">
                 {metric.note}
-              </p>
+              </dd>
             )}
           </div>
         ))}
+      </dl>
+
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+        <FreshnessMark freshness={section.freshness} />
       </div>
 
+      {/* A caveat keeps the stamp rule: it is the page saying do not quote
+          this number on its own, which is the same warning the record gives
+          for an unchecked provision. */}
       {section.caveat && (
-        <div className="p-3 rounded-sm bg-stamp-wash/40 border border-stamp/30 text-xs text-foreground/80 font-serif leading-relaxed">
-          <strong className="apparatus text-stamp mr-1 font-bold">Caveat:</strong>
+        <p className="mt-4 border-l-2 border-stamp pl-4 font-serif leading-relaxed text-foreground/85">
+          <span className="apparatus mr-2 text-stamp">Caveat</span>
           {section.caveat}
-        </div>
+        </p>
       )}
-    </section>
+    </article>
   );
 }

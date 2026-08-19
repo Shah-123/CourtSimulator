@@ -265,6 +265,10 @@ proved separately in code — a real 48 kHz WebM/Opus blob, the format Chrome's
 MediaRecorder produces, returns its input word-for-word with no conversion step.
 Still unheard: a witness *answering*. That run ended in a sustained objection,
 where the graph routes to `END` and silence is the correct behaviour.
+[`docs/voice-demo.md`](docs/voice-demo.md) is the shortest path to closing that
+gap — a seeded case, *State v. Bilal Hussain*, built so that one sitting puts
+the bench, opposing counsel and a witness through their own voices in turn, with
+every beat verified through the graph in text.
 
 Generated cases are drafted as **filings, not summaries**: a case now carries a
 brief with numbered facts, lettered grounds and an itemised prayer, and the

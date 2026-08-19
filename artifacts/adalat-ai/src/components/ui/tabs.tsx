@@ -2,6 +2,15 @@ import * as React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 
+/**
+ * Tabs, set as column heads rather than as a segmented control.
+ *
+ * shadcn ships these as a filled pill group, which is the one shape this app
+ * does not use anywhere else: the cause-list voice divides with rules, not
+ * with tinted boxes. The current head is marked by the rule thickening under
+ * it, the way a printed table marks the column being read.
+ */
+
 const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
@@ -11,7 +20,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground',
+      'flex items-stretch gap-5 border-b border-rule text-muted-foreground',
       className,
     )}
     {...props}
@@ -26,7 +35,10 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow',
+      'apparatus -mb-px whitespace-nowrap border-b-2 border-transparent pb-2 pt-1 transition-colors',
+      'hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+      'disabled:pointer-events-none disabled:opacity-50',
+      'data-[state=active]:border-foreground data-[state=active]:text-foreground',
       className,
     )}
     {...props}
@@ -41,7 +53,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      'mt-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
       className,
     )}
     {...props}

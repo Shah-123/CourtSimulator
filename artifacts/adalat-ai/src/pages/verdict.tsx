@@ -6,21 +6,23 @@ import {
   useGetSession,
   useGetSessionVerdict,
 } from "@workspace/api-client-react";
-import {
-  ChevronLeft,
-  Gavel,
-  Award,
-  CheckCircle2,
-  AlertTriangle,
-  RotateCcw,
-  BookOpen,
-  Scale,
-  FileCheck2,
-} from "lucide-react";
 import { ApiErrorState } from "@/components/api-state";
+import { CaseName } from "@/components/case-name";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { docket } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+/**
+ * The judgment, set as a judgment.
+ *
+ * This is the one page in the app that is a document rather than a screen, so
+ * it is the one page that gets a centred heading, a wide margin and a single
+ * column. It previously sat inside a bordered card with a shadow, on a page
+ * that also had a card — a judgment reproduced on a business-card back. The
+ * sheet is now the page.
+ */
 export default function VerdictPage() {
   const { id } = useParams();
   const sessionId = parseInt(id || "0", 10);
@@ -67,18 +69,19 @@ export default function VerdictPage() {
           void refetchSession();
           void refetchVerdict();
         }}
-        title="The verdict could not be loaded"
+        title="The judgment could not be loaded"
       />
     );
   }
 
   if (isSessionLoading || isVerdictLoading) {
     return (
-      <div className="mx-auto max-w-3xl animate-pulse space-y-6 py-12">
-        <div className="h-6 w-32 rounded-sm bg-secondary" />
-        <div className="h-48 rounded-sm bg-card border border-rule" />
-        <div className="h-32 rounded-sm bg-card border border-rule" />
-        <div className="h-48 rounded-sm bg-card border border-rule" />
+      <div className="mx-auto max-w-2xl space-y-8 py-10">
+        <Skeleton className="mx-auto h-3 w-56 rounded-sm" />
+        <Skeleton className="mx-auto h-12 w-2/3 rounded-sm" />
+        <Skeleton className="mx-auto h-24 w-40 rounded-sm" />
+        <Skeleton className="h-32 rounded-sm" />
+        <Skeleton className="h-48 rounded-sm" />
       </div>
     );
   }
@@ -86,186 +89,162 @@ export default function VerdictPage() {
   if (!session || !verdict) {
     return (
       <div className="mx-auto max-w-lg py-24 text-center">
-        <div className="rounded-full bg-primary/10 p-4 w-16 h-16 mx-auto flex items-center justify-center mb-4">
-          <Gavel className="h-8 w-8 text-primary" />
-        </div>
-        <h2 className="font-serif text-2xl font-bold text-foreground">No Final Decree on File</h2>
-        <p className="mt-2 text-xs text-muted-foreground">
-          The Presiding Bench delivers a recorded judgment once the hearing concludes. This proceeding is currently part-heard.
+        <p className="apparatus text-muted-foreground">No judgment on file</p>
+        <h1 className="display-sm mt-3">This matter is still part-heard.</h1>
+        <p className="mx-auto mt-3 max-w-sm font-serif leading-relaxed text-muted-foreground">
+          The bench delivers its judgment once the hearing concludes. Return to
+          the courtroom and close your case.
         </p>
         <Link
           href={`/sessions/${sessionId}`}
-          className="apparatus mt-6 inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm"
+          className="apparatus mt-6 inline-block text-foreground underline underline-offset-4"
         >
-          Return to Courtroom Chamber
+          Back to the courtroom
         </Link>
       </div>
     );
   }
 
   const criteria = [
-    { label: "Legal Reasoning & Statutory Application", score: verdict.legalReasoningScore },
-    { label: "Persuasiveness & Oral Delivery", score: verdict.persuasivenessScore },
-    { label: "Procedural Command & Objections", score: verdict.procedureScore },
-    { label: "Factual Matrix Command & Sworn Record", score: verdict.factualCommandScore },
+    { label: "Legal reasoning and statutory application", score: verdict.legalReasoningScore },
+    { label: "Persuasiveness and oral delivery", score: verdict.persuasivenessScore },
+    { label: "Procedural command and objections", score: verdict.procedureScore },
+    { label: "Command of the facts and the sworn record", score: verdict.factualCommandScore },
   ];
 
   const isDistinction = verdict.overallScore >= 75;
   const isPass = verdict.overallScore >= 50;
 
   return (
-    <div className="mx-auto max-w-3xl pb-20 space-y-8">
-      {/* Navigation breadcrumb */}
-      <div className="flex items-center justify-between">
+    <article className="mx-auto max-w-2xl pb-20">
+      <nav className="flex items-center justify-between gap-4 pb-8">
         <Link
           href="/history"
-          className="apparatus inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground text-xs"
+          className="apparatus text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
         >
-          <ChevronLeft className="h-3.5 w-3.5" /> Return to Cause List
+          ← Appearances
         </Link>
-
         <Link href="/">
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>Select Next Matter</span>
+          <Button variant="outline" size="sm">
+            Select the next matter
           </Button>
         </Link>
-      </div>
+      </nav>
 
-      {/* Official Judicial Decree Document */}
-      <div className="court-card p-6 sm:p-10 space-y-8 bg-card border-2 border-rule relative overflow-hidden shadow-md">
-        {/* Document Header */}
-        <header className="border-b-2 border-foreground/80 pb-6 text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/30 text-primary mb-2">
-            <Gavel className="h-6 w-6" />
-          </div>
-          <p className="apparatus text-muted-foreground tracking-widest text-[0.6875rem]">
-            IN THE HIGH COURT OF SINDH / SUPREME COURT OF PAKISTAN
-          </p>
-          <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
-            Judicial Decree & Bench Evaluation
-          </h1>
-          <p className="apparatus text-xs text-muted-foreground pt-1">
-            Docket No. AD-{session.id.toString().padStart(4, "0")} · {session.case.areaOfLaw}
-          </p>
-          <div className="pt-2 text-sm font-serif italic text-foreground/85 max-w-xl mx-auto">
-            In the Matter of: <strong className="font-semibold">{session.case.title}</strong>
-          </div>
-          <p className="apparatus text-xs text-primary font-bold">
-            Appearing as Counsel for the {session.studentSide.toUpperCase()}
-          </p>
-        </header>
+      <header className="masthead-rule pb-8 text-center">
+        <p className="apparatus text-muted-foreground">
+          In the High Court · moot sitting
+        </p>
+        <h1 className="display mt-4">Judgment and evaluation</h1>
+        <p className="apparatus mt-4 tabular-nums text-muted-foreground">
+          {docket(session.id)} · {session.case.areaOfLaw}
+        </p>
+        <p className="mx-auto mt-5 max-w-lg font-serif text-[1.0625rem] leading-relaxed text-foreground/85">
+          In the matter of <CaseName title={session.case.title} />, in which you
+          appeared as counsel for the{" "}
+          <span className="text-foreground">{session.studentSide}</span>.
+        </p>
+      </header>
 
-        {/* Scorecard Hero */}
-        <section className="flex flex-col items-center justify-center py-6 bg-secondary/25 rounded-sm border border-rule text-center">
-          <p className="apparatus text-muted-foreground text-xs font-semibold">
-            Overall Advocacy Score
-          </p>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span
-              className={cn(
-                "font-serif text-7xl font-extrabold tabular-nums tracking-tight",
-                isDistinction ? "text-seal" : isPass ? "text-primary" : "text-stamp",
-              )}
-            >
-              {verdict.overallScore}
-            </span>
-            <span className="font-serif text-2xl text-muted-foreground">/100</span>
-          </div>
-
-          <div className="mt-3">
-            <span
-              className={cn(
-                "judicial-stamp text-xs px-3 py-1",
-                isDistinction
-                  ? "judicial-stamp-sustained"
-                  : isPass
-                  ? "border-primary text-primary bg-primary/10"
-                  : "judicial-stamp-overruled",
-              )}
-            >
-              <Award className="h-3.5 w-3.5 mr-1.5 inline" />
-              {isDistinction
-                ? "First Class Distinction"
+      {/* The mark. One numeral, set at display size, because it is the single
+          thing a student opens this page to read. */}
+      <section className="border-b border-rule py-10 text-center">
+        <p className="apparatus text-muted-foreground">Overall</p>
+        <p className="mt-3 flex items-baseline justify-center gap-1">
+          <span
+            className={cn(
+              "font-serif text-8xl leading-none tabular-nums tracking-[-0.03em]",
+              isDistinction
+                ? "text-seal"
                 : isPass
-                ? "Qualified Appearance"
-                : "Further Preparation Required"}
-            </span>
-          </div>
-        </section>
+                  ? "text-foreground"
+                  : "text-stamp",
+            )}
+          >
+            {verdict.overallScore}
+          </span>
+          <span className="font-serif text-3xl text-muted-foreground">
+            /100
+          </span>
+        </p>
+        <p className="apparatus mt-4 text-muted-foreground">
+          {isDistinction
+            ? "First class — distinction"
+            : isPass
+              ? "Qualified appearance"
+              : "Further preparation required"}
+        </p>
+      </section>
 
-        {/* Remarks from the Bench */}
-        <section className="space-y-2.5">
-          <h2 className="apparatus text-foreground font-bold flex items-center gap-2">
-            <Scale className="h-4 w-4 text-primary" />
-            Remarks from the Presiding Bench
-          </h2>
-          <blockquote className="border-l-4 border-primary bg-primary/5 p-4 rounded-r-sm font-serif text-base sm:text-lg italic leading-relaxed text-foreground">
-            "{verdict.judgeRemarks}"
-          </blockquote>
-        </section>
+      <section className="border-b border-rule py-10">
+        <h2 className="apparatus text-center text-muted-foreground">
+          Remarks from the bench
+        </h2>
+        {/* Set as the judgment's own prose rather than as a callout box: this
+            is the bench speaking, and it is the longest thing on the page. */}
+        <blockquote className="mx-auto mt-5 max-w-xl text-balance font-serif text-xl leading-relaxed text-foreground">
+          “{verdict.judgeRemarks}”
+        </blockquote>
+      </section>
 
-        {/* Strengths & Areas for Improvement Grid */}
-        <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Strengths */}
-          <div className="p-4 rounded-sm bg-seal-wash/50 border border-seal/30 space-y-2">
-            <h3 className="apparatus text-seal font-bold flex items-center gap-1.5 text-xs">
-              <CheckCircle2 className="h-4 w-4" />
-              Commendations & Strengths
-            </h3>
-            <p className="font-serif text-xs sm:text-sm leading-relaxed text-foreground/90">
-              {verdict.strengths}
-            </p>
-          </div>
-
-          {/* Areas for Improvement */}
-          <div className="p-4 rounded-sm bg-stamp-wash/50 border border-stamp/30 space-y-2">
-            <h3 className="apparatus text-stamp font-bold flex items-center gap-1.5 text-xs">
-              <AlertTriangle className="h-4 w-4" />
-              Areas for Judicial Correction
-            </h3>
-            <p className="font-serif text-xs sm:text-sm leading-relaxed text-foreground/90">
-              {verdict.areasForImprovement}
-            </p>
-          </div>
-        </section>
-
-        {/* Detailed Rubric by Criterion */}
-        <section className="space-y-4 pt-2">
-          <h2 className="apparatus text-foreground font-bold flex items-center gap-2">
-            <FileCheck2 className="h-4 w-4 text-primary" />
-            Evaluation by Statutory Criterion
-          </h2>
-          <div className="divide-y divide-rule/70 border-y border-rule/70">
-            {criteria.map(({ label, score }) => (
-              <div key={label} className="py-3.5 space-y-1.5">
-                <div className="flex justify-between items-center text-xs sm:text-sm">
-                  <span className="font-semibold text-foreground">{label}</span>
-                  <span className="apparatus font-bold tabular-nums text-foreground">
-                    {score}/100
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      score >= 75 ? "bg-seal" : score >= 50 ? "bg-primary" : "bg-stamp",
-                    )}
-                    style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Footer Notice */}
-        <footer className="border-t border-rule pt-4 text-center">
-          <p className="apparatus text-[0.625rem] text-muted-foreground leading-relaxed">
-            Evaluated by the CourtSimulator Judicial Deliberation Graph against the Record of Proceedings and the statutory corpus of Pakistan.
+      {/* Marked with a rule in the reserved colour rather than filled with it.
+          A wash behind a paragraph of ordinary feedback spends seal and stamp
+          on something that is not a verification state. */}
+      <section className="grid grid-cols-1 gap-8 border-b border-rule py-10 sm:grid-cols-2">
+        <div className="border-l-2 border-seal pl-4">
+          <h3 className="apparatus text-seal">What was done well</h3>
+          <p className="mt-2 font-serif leading-relaxed text-foreground/90">
+            {verdict.strengths}
           </p>
-        </footer>
-      </div>
-    </div>
+        </div>
+        <div className="border-l-2 border-stamp pl-4">
+          <h3 className="apparatus text-stamp">What to correct</h3>
+          <p className="mt-2 font-serif leading-relaxed text-foreground/90">
+            {verdict.areasForImprovement}
+          </p>
+        </div>
+      </section>
+
+      <section className="py-10">
+        <h2 className="rule-heading">
+          <span>Evaluation by criterion</span>
+        </h2>
+        <dl className="divide-y divide-rule/70">
+          {criteria.map(({ label, score }) => (
+            <div key={label} className="space-y-2 py-4">
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="font-serif text-[1.0625rem] leading-snug text-foreground">
+                  {label}
+                </dt>
+                <dd className="shrink-0 font-serif text-lg tabular-nums text-foreground">
+                  {score}
+                  <span className="text-sm text-muted-foreground">/100</span>
+                </dd>
+              </div>
+              <Progress
+                value={Math.max(0, Math.min(100, score))}
+                aria-label={`${label}: ${score} out of 100`}
+                className="h-[3px] rounded-none bg-rule"
+                indicatorClassName={cn(
+                  "rounded-none",
+                  score >= 75
+                    ? "bg-seal"
+                    : score >= 50
+                      ? "bg-foreground/70"
+                      : "bg-stamp",
+                )}
+              />
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <footer className="border-t border-rule pt-5 text-center">
+        <p className="apparatus leading-relaxed text-muted-foreground">
+          Marked by the deliberation graph against the record of proceedings and
+          the statutory corpus
+        </p>
+      </footer>
+    </article>
   );
 }

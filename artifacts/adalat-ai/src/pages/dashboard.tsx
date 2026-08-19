@@ -1,23 +1,46 @@
 import { useGetDashboardSummary } from "@workspace/api-client-react";
-import {
-  ChevronRight,
-  Scale,
-  Award,
-  TrendingUp,
-  AlertTriangle,
-  BookOpen,
-  ArrowUpRight,
-  Gavel,
-  History,
-  CheckCircle2,
-} from "lucide-react";
 import { Link } from "wouter";
 import { ApiErrorState } from "@/components/api-state";
+import { CaseName } from "@/components/case-name";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { counted } from "@/lib/format";
 
 function humanise(skill: string): string {
-  return skill.replace(/([A-Z])/g, " $1").trim();
+  const spaced = skill.replace(/([A-Z])/g, " $1").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
+/**
+ * One figure from the record, set as a figure.
+ *
+ * These were four tinted tiles each with an icon in a coloured square, which
+ * spent seal, gold, stamp and primary on decoration — four reserved colours
+ * used to mean "this is a statistic" on a page where they otherwise mean
+ * verified, unverified and the bench. The number carries it on its own at this
+ * size, so the colour goes back to being available for what it is for.
+ */
+function Figure({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) {
+  return (
+    <div className="px-0 py-5 sm:px-6 sm:first:pl-0 sm:last:pr-0">
+      <p className="apparatus text-muted-foreground">{label}</p>
+      <p className="mt-2 font-serif text-[2.5rem] leading-none tabular-nums text-foreground">
+        {value}
+      </p>
+      {note && (
+        <p className="apparatus mt-2 text-muted-foreground">{note}</p>
+      )}
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -35,16 +58,23 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-8 pb-12">
-        <div className="h-10 w-56 rounded-sm bg-secondary" />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 rounded-sm bg-card border border-rule" />
+      <div className="space-y-9 pb-16">
+        <div className="masthead-rule space-y-4 pb-7">
+          <Skeleton className="h-3 w-24 rounded-sm" />
+          <Skeleton className="h-12 w-2/3 rounded-sm" />
+          <Skeleton className="h-5 w-1/2 rounded-sm" />
+        </div>
+        <div className="grid grid-cols-1 divide-y divide-rule border-b border-rule sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3 py-5 sm:px-6">
+              <Skeleton className="h-3 w-20 rounded-sm" />
+              <Skeleton className="h-10 w-16 rounded-sm" />
+            </div>
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <div className="h-64 rounded-sm bg-card border border-rule" />
-          <div className="h-64 rounded-sm bg-card border border-rule" />
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+          <Skeleton className="h-64 rounded-sm" />
+          <Skeleton className="h-64 rounded-sm" />
         </div>
       </div>
     );
@@ -52,181 +82,147 @@ export default function DashboardPage() {
 
   if (!summary) return null;
 
-  const stats = [
-    {
-      label: "Total Appearances",
-      value: String(summary.totalSessions),
-      note: `${summary.completedSessions} with formal decree`,
-      icon: Scale,
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      label: "Average Judicial Score",
-      value: summary.averageOverallScore
-        ? `${summary.averageOverallScore.toFixed(1)}/100`
-        : "—",
-      note: summary.averageOverallScore && summary.averageOverallScore >= 75
-        ? "Distinction standing"
-        : "Bench evaluations",
-      icon: Award,
-      color: "text-seal",
-      bg: "bg-seal/10",
-      accent: true,
-    },
-    {
-      label: "Strongest Skill Area",
-      value: summary.strongestSkill ? humanise(summary.strongestSkill) : "—",
-      note: summary.strongestSkill ? "High judicial marks" : "Awaiting data",
-      icon: TrendingUp,
-      color: "text-gold",
-      bg: "bg-gold/10",
-      small: true,
-    },
-    {
-      label: "Area for Growth",
-      value: summary.weakestSkill ? humanise(summary.weakestSkill) : "—",
-      note: summary.weakestSkill ? "Focus area for next trial" : "Awaiting data",
-      icon: AlertTriangle,
-      color: "text-stamp",
-      bg: "bg-stamp/10",
-      small: true,
-    },
-  ];
+  const average = summary.averageOverallScore;
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Chambers Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-rule pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <Scale className="h-5 w-5 text-primary" />
-            <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
-              Chambers & Performance
-            </h1>
-          </div>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Judicial evaluations, advocacy analytics, and statutory command across all courtroom appearances.
-          </p>
+    <div className="space-y-9 pb-16">
+      <header className="masthead-rule pb-7">
+        <div className="flex items-start justify-between gap-4">
+          <p className="apparatus pt-1 text-muted-foreground">Chambers</p>
+          <Link href="/">
+            <Button className="shrink-0">Select a matter</Button>
+          </Link>
         </div>
-        <Link href="/">
-          <Button className="gap-1.5 shadow-sm">
-            <BookOpen className="h-4 w-4" />
-            <span>Enter New Trial</span>
-          </Button>
-        </Link>
-      </div>
 
-      {/* 4 Scorecard Widgets */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="court-card p-5 flex flex-col justify-between relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between">
-                <p className="apparatus text-muted-foreground text-[0.6875rem]">
-                  {stat.label}
-                </p>
-                <div className={cn("p-2 rounded-sm", stat.bg, stat.color)}>
-                  <Icon className="h-4 w-4" />
-                </div>
-              </div>
+        <h1 className="display mt-4 max-w-3xl">Your standing at the bar</h1>
 
-              <div className="mt-4">
-                <p
-                  className={cn(
-                    "font-serif font-bold leading-tight",
-                    stat.small ? "text-lg truncate" : "text-3xl tabular-nums",
-                    stat.accent ? "text-primary" : "text-foreground",
-                  )}
-                >
-                  {stat.value}
-                </p>
-                {stat.note && (
-                  <p className="apparatus mt-1.5 text-muted-foreground text-[0.625rem]">
-                    {stat.note}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+        <p className="standfirst mt-5">
+          What the bench has made of your advocacy so far — the marks it gave,
+          the areas you have argued in, and the two skills its remarks keep
+          returning to.
+        </p>
+      </header>
 
-      {/* Analytics Breakdown & Recent Sessions */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Practice by Area of Law */}
-        <section className="court-card p-6 flex flex-col">
-          <div className="flex items-center justify-between border-b border-rule pb-3">
-            <h2 className="apparatus font-bold text-foreground flex items-center gap-2">
-              <Gavel className="h-4 w-4 text-primary" />
-              Practice by Area of Law
-            </h2>
-            <span className="apparatus text-muted-foreground text-xs">
-              {summary.sessionsByAreaOfLaw.length} Areas
-            </span>
+      {/* The figures, divided by a rule rather than boxed into tiles. */}
+      <section className="grid grid-cols-1 divide-y divide-rule border-b border-rule sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <Figure
+          label="Appearances"
+          value={String(summary.totalSessions)}
+          note={`${counted(summary.completedSessions).toLowerCase()} carried to judgment`}
+        />
+        <Figure
+          label="Average mark"
+          value={average ? average.toFixed(1) : "—"}
+          note={
+            average
+              ? average >= 75
+                ? "Distinction standing"
+                : average >= 50
+                  ? "Qualified standing"
+                  : "Below the pass mark"
+              : "No judgment delivered yet"
+          }
+        />
+        <Figure
+          label="Matters on file"
+          value={String(summary.sessionsByAreaOfLaw.length)}
+          note={
+            summary.sessionsByAreaOfLaw.length === 1
+              ? "one area of law"
+              : "areas of law argued"
+          }
+        />
+      </section>
+
+      {/* The bench's reading of the advocate rather than of the record. Set as
+          prose, because "Legal reasoning" and "Procedure" are judgements and a
+          numeral would imply a precision the scorer does not claim. */}
+      {(summary.strongestSkill || summary.weakestSkill) && (
+        <section className="grid grid-cols-1 gap-x-10 gap-y-5 border-b border-rule pb-7 sm:grid-cols-2">
+          <div>
+            <p className="apparatus text-muted-foreground">Strongest</p>
+            <p className="mt-1.5 font-serif text-xl leading-snug text-seal">
+              {summary.strongestSkill
+                ? humanise(summary.strongestSkill)
+                : "Not yet apparent"}
+            </p>
           </div>
+          <div>
+            <p className="apparatus text-muted-foreground">
+              Where the bench presses hardest
+            </p>
+            <p className="mt-1.5 font-serif text-xl leading-snug text-stamp">
+              {summary.weakestSkill
+                ? humanise(summary.weakestSkill)
+                : "Not yet apparent"}
+            </p>
+          </div>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
+        <section>
+          <h2 className="rule-heading">
+            <span>Practice by area of law</span>
+            <span className="tabular-nums">
+              {summary.sessionsByAreaOfLaw.length}
+            </span>
+          </h2>
 
           {summary.sessionsByAreaOfLaw.length > 0 ? (
-            <dl className="mt-4 divide-y divide-rule/60 flex-1">
+            <dl className="divide-y divide-rule/70">
               {summary.sessionsByAreaOfLaw.map((item) => {
                 const percentage = Math.round(
                   (item.count / Math.max(1, summary.totalSessions)) * 100,
                 );
                 return (
-                  <div key={item.areaOfLaw} className="py-3.5 space-y-1.5">
-                    <div className="flex justify-between items-center text-sm">
-                      <dt className="font-semibold text-foreground">
+                  <div key={item.areaOfLaw} className="space-y-2 py-4">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className="font-serif text-[1.0625rem] text-foreground">
                         {item.areaOfLaw}
                       </dt>
-                      <dd className="apparatus tabular-nums text-muted-foreground font-semibold">
-                        {item.count} {item.count === 1 ? "trial" : "trials"} ({percentage}%)
+                      <dd className="apparatus shrink-0 tabular-nums text-muted-foreground">
+                        {counted(item.count).toLowerCase()}{" "}
+                        {item.count === 1 ? "hearing" : "hearings"} · {percentage}%
                       </dd>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+                    <Progress
+                      value={percentage}
+                      aria-label={`${item.areaOfLaw}: ${percentage}% of your hearings`}
+                      className="h-[3px] rounded-none bg-rule"
+                      indicatorClassName="rounded-none bg-foreground/70"
+                    />
                   </div>
                 );
               })}
             </dl>
           ) : (
-            <div className="py-12 text-center text-muted-foreground my-auto">
-              <BookOpen className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm">No courtroom appearances on file yet.</p>
+            <p className="py-10 font-serif leading-relaxed text-muted-foreground">
+              Nothing argued yet.{" "}
               <Link
                 href="/"
-                className="apparatus mt-2 inline-block text-primary hover:underline"
+                className="text-foreground underline underline-offset-4"
               >
-                Select a matter to begin
-              </Link>
-            </div>
+                Select a matter
+              </Link>{" "}
+              and this fills in as you appear.
+            </p>
           )}
         </section>
 
-        {/* Recent Hearings & Decrees */}
-        <section className="court-card p-6 flex flex-col">
-          <div className="flex items-center justify-between border-b border-rule pb-3">
-            <h2 className="apparatus font-bold text-foreground flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              Recent Courtroom Hearings
-            </h2>
+        <section>
+          <h2 className="rule-heading">
+            <span>Recent hearings</span>
             <Link
               href="/history"
-              className="apparatus flex items-center gap-1 text-primary hover:underline text-xs"
+              className="text-foreground underline underline-offset-4 hover:opacity-80"
             >
-              Full Cause List <ChevronRight className="h-3 w-3" />
+              All appearances
             </Link>
-          </div>
+          </h2>
 
           {summary.recentSessions.length > 0 ? (
-            <ul className="mt-4 divide-y divide-rule/60 flex-1">
+            <ul className="divide-y divide-rule/70">
               {summary.recentSessions.map((session) => {
                 const isClosed = session.status === "completed";
                 return (
@@ -237,33 +233,39 @@ export default function DashboardPage() {
                           ? `/sessions/${session.id}/verdict`
                           : `/sessions/${session.id}`
                       }
-                      className="group flex items-center justify-between py-3.5 px-2 rounded-sm transition-colors hover:bg-secondary/40"
+                      className="group flex items-baseline justify-between gap-4 py-4 transition-colors hover:bg-secondary/30"
                     >
-                      <div className="min-w-0 pr-4">
-                        <span className="block truncate font-serif font-semibold text-foreground group-hover:text-primary transition-colors text-sm">
-                          {session.caseTitle}
+                      <div className="min-w-0">
+                        <span className="block truncate font-serif text-[1.0625rem] leading-snug text-foreground underline-offset-4 group-hover:underline">
+                          <CaseName title={session.caseTitle} />
                         </span>
-                        <p className="apparatus mt-0.5 text-muted-foreground text-[0.625rem] flex items-center gap-1.5">
+                        <p className="apparatus mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
                           <span>{session.areaOfLaw}</span>
-                          <span className="text-rule">·</span>
+                          <span aria-hidden="true">·</span>
                           <span>for the {session.studentSide}</span>
-                          <span className="text-rule">·</span>
-                          <span>{new Date(session.createdAt).toLocaleDateString()}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="tabular-nums">
+                            {new Date(session.createdAt).toLocaleDateString(
+                              "en-GB",
+                              { day: "numeric", month: "short", year: "numeric" },
+                            )}
+                          </span>
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="shrink-0 text-right">
                         {isClosed ? (
-                          <span className="inline-flex items-center gap-1 rounded-sm bg-seal/10 px-2 py-0.5 font-mono text-xs font-bold text-seal border border-seal/20">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {session.overallScore}/100
+                          <span className="font-serif text-xl leading-none tabular-nums text-foreground">
+                            {session.overallScore}
+                            <span className="text-sm text-muted-foreground">
+                              /100
+                            </span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-sm bg-stamp/10 px-2 py-0.5 font-mono text-[0.6875rem] font-bold text-stamp border border-stamp/20">
-                            Part-Heard
+                          <span className="apparatus text-muted-foreground">
+                            Part-heard
                           </span>
                         )}
-                        <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                       </div>
                     </Link>
                   </li>
@@ -271,10 +273,9 @@ export default function DashboardPage() {
               })}
             </ul>
           ) : (
-            <div className="py-12 text-center text-muted-foreground my-auto">
-              <History className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm">No recent appearances found.</p>
-            </div>
+            <p className="py-10 font-serif leading-relaxed text-muted-foreground">
+              No hearing has been called yet.
+            </p>
           )}
         </section>
       </div>

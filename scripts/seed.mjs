@@ -38,9 +38,15 @@ const client = new pg.Client({ connectionString: databaseUrl });
 function loadCorpus() {
   const corpusDir = path.resolve(dir, "../data/statutes");
   const byKey = new Map();
+  const instruments = [];
 
   for (const file of fs.readdirSync(corpusDir).filter((f) => f.endsWith(".json"))) {
     const instrument = JSON.parse(fs.readFileSync(path.join(corpusDir, file), "utf8"));
+    instruments.push({
+      statuteCode: instrument.statuteCode,
+      // The exact string a citation is rendered with, e.g. "QSO 1984 Art. ".
+      prefix: `${instrument.citationPrefix} ${instrument.citationUnit}`,
+    });
     for (const section of instrument.sections) {
       byKey.set(`${instrument.statuteCode}:${section.sectionNumber.toUpperCase()}`, {
         citation: `${instrument.citationPrefix} ${instrument.citationUnit}${section.sectionNumber}`,
@@ -52,7 +58,7 @@ function loadCorpus() {
     }
   }
 
-  return byKey;
+  return { byKey, instruments };
 }
 
 /** Resolves a case's declared provisions, or throws naming every miss. */
@@ -74,6 +80,60 @@ function resolveCitations(corpus, title, provisions) {
   }
 
   return resolved;
+}
+
+/**
+ * The same rule applied to the prose of a brief.
+ *
+ * `applicableLaws` is derived from resolved pairs and cannot lie. A brief
+ * cannot be: its facts and grounds are prose, and a ground is precisely where a
+ * wrong section number does the most damage, because it reads to a student as a
+ * pleaded proposition of law and is fed to every agent through
+ * `case_context()`. Nothing downstream would catch it — the runtime audit runs
+ * over what agents *say*, not over what the case file already asserted.
+ *
+ * So every citation written in a brief must be spelled the way the corpus
+ * renders one ("QSO 1984 Art. 141", "PPC 1860 s.302"), and every one of them
+ * must resolve. The pattern is built from the corpus's own prefixes rather than
+ * from a second alias table, so it cannot drift from the statute book.
+ *
+ * What this does not catch: a citation written in a looser form the Python
+ * extractor would still read, such as "Article 999 of the QSO". That is the
+ * price of not reimplementing `app/rag/citations.py` here in a second language.
+ * House rendering in brief prose is the convention that makes the check bite.
+ */
+function verifyBriefCitations(corpus, title, brief) {
+  if (!brief) return;
+
+  const pattern = new RegExp(
+    `(${corpus.instruments
+      .map((i) => i.prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|")})\\s*(\\d+(?:-?[A-Za-z])?)`,
+    "g"
+  );
+  const codeByPrefix = new Map(corpus.instruments.map((i) => [i.prefix, i.statuteCode]));
+
+  const prose = [
+    brief.jurisdictionInvoked,
+    ...[...brief.facts, ...brief.grounds, ...brief.prayer],
+  ].filter(Boolean);
+
+  const missing = [];
+  for (const text of prose) {
+    for (const [raw, prefix, sectionNumber] of text.matchAll(pattern)) {
+      const statuteCode = codeByPrefix.get(prefix);
+      if (!corpus.byKey.has(`${statuteCode}:${sectionNumber.toUpperCase()}`)) {
+        missing.push(raw);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `The brief for "${title}" cites provisions absent from the corpus: ` +
+        `${missing.join(", ")}.`
+    );
+  }
 }
 
 const sampleCases = [
@@ -217,8 +277,167 @@ const sampleCases = [
       }
     ]),
     source: "library"
+  },
+  // The voice-demo case, and the only seeded case carrying a full brief.
+  //
+  // It exists because hearing all three AI voices in one sitting needs a case
+  // built for it, not a case that happens to allow it. Every beat of the demo
+  // has a witness who properly belongs to the side that calls them, and the
+  // facts are laid so that each of the seven objection grounds in
+  // app/grounding.py has something real to bite on:
+  //
+  //   hearsay (Art. 71)          Nadia Sattar was *told* about the motorcyclist
+  //   leading (Art. 137)         she is the prosecution's own witness in chief
+  //   secondary evidence (75)    the CCTV survives only as a copy on a USB
+  //   police statement (s.162)   her s.161 statement omits the accused's name
+  //   insulting (Art. 148)       Junaid Farooq is the accused's cousin
+  //   improper impeachment (151) the alibi rests on that relationship
+  //   irrelevant (Art. 133)      nothing in the file turns on the parties' politics
+  //
+  // Nadia Sattar, Inspector Qureshi and Dr. Malik are the prosecution's, so a
+  // student arguing for the State examines them in chief where leading is
+  // objectionable; Junaid Farooq is the alibi, so he is the one they cross,
+  // where leading is proper. Arguing as the accused inverts that cleanly, which
+  // is why the parties are named "The State" and "Bilal Hussain" rather than
+  // appellant and respondent — either side is a coherent demo.
+  //
+  // The brief is what makes it a *detailed* case rather than a long summary:
+  // grounds are read into every agent prompt, so the bench and opposing counsel
+  // can press a student on a proposition the file actually pleads. That is not
+  // free — see docs/voice-demo.md for what it adds to the per-turn prompt.
+  {
+    title: "State v. Bilal Hussain",
+    areaOfLaw: "Criminal",
+    difficulty: "Advanced",
+    summary: "Asim Javed, who managed the Al-Barq filling station on Adiala Road, Rawalpindi, was shot dead in the station's cabin at about 9:40 pm on 14 March 2025. The prosecution says the assailant was Bilal Hussain, a pump attendant dismissed three weeks earlier over a cash shortfall, identified by the cashier Nadia Sattar as he walked out with a pistol in his hand, and that a second man waited for him on a motorcycle. The defence pleads alibi at a family function in Chakwal, ninety kilometres away, and attacks the proof rather than the story: the cashier's statement to the police does not name the accused, and the station's camera footage survives only as a copy on a USB drive. The trial turns on identification, on the alibi, and on whether the documentary and recovery evidence is proved as the Qanun-e-Shahadat requires.",
+    provisions: [
+      ["PPC_1860", "34"],
+      ["PPC_1860", "300"],
+      ["PPC_1860", "302"],
+      ["QSO_1984", "17"],
+      ["QSO_1984", "71"],
+      ["QSO_1984", "75"],
+      ["QSO_1984", "76"],
+      ["QSO_1984", "141"],
+      ["CRPC_1898", "161"],
+      ["CONST_1973", "10A"],
+    ],
+    petitionerName: "The State",
+    petitionerRole: "Prosecution / Complainant",
+    respondentName: "Bilal Hussain",
+    respondentRole: "Accused / Defence",
+    // Four witnesses, three for the prosecution and one for the defence, so
+    // examination-in-chief and cross-examination each have a witness who
+    // belongs to that side whichever side the student takes.
+    witnesses: JSON.stringify([
+      {
+        name: "Nadia Sattar",
+        role: "Cashier at the filling station (eyewitness)",
+        // The last sentence is deliberate: it marks the motorcyclist as
+        // something she was told, not something she saw, so a question about
+        // him is genuinely hearsay rather than hearsay by stipulation.
+        statement: "I was at the cash counter, about fifteen feet from the manager's cabin, when I heard two loud bangs. When I looked up, a man was walking out of the cabin with a pistol in his hand, and the forecourt lights were on, so I saw his face — it was Bilal, who worked with us until last month. The other staff told me afterwards that a second man was waiting for him on a motorcycle; I did not see that myself."
+      },
+      {
+        name: "Inspector Rehan Qureshi",
+        role: "Investigating Officer",
+        // He must know about the copy, because fact 6 says the police took the
+        // recorder. Without that sentence the secondary-evidence beat produces
+        // an honest "I don't recall" instead of an objection — the witness
+        // agent is right and the case file was incomplete.
+        statement: "I reached the filling station a little after eleven that night, prepared the site plan, and took the blood-stained earth, two empties and the camera recorder into possession. The accused was arrested on the seventeenth, and on the nineteenth he took us to a drain off Dhamial Road where a pistol was recovered in my presence. The recorder's disk would not read at the laboratory, so what has been produced is a copy of the footage on a USB drive, made by the station's own operator."
+      },
+      {
+        name: "Dr. Ayesha Malik",
+        role: "Medico-legal Officer",
+        // Says nothing about who fired. A question asking her to is the
+        // cleanest demonstration of the witness declining to speculate, and it
+        // only works if the statement leaves that gap open.
+        statement: "I conducted the post-mortem on the morning of the fifteenth. There were two entry wounds on the chest with corresponding exit wounds at the back, and I gave the cause of death as haemorrhage and shock from firearm injuries. From the condition of the body, I put the time of death at roughly twelve to fourteen hours before I examined him."
+      },
+      {
+        name: "Junaid Farooq",
+        role: "Cousin of the accused (alibi witness)",
+        statement: "Bilal is my cousin. On the night of the fourteenth he was at my sister's mehndi in Chakwal — he came at about eight in the evening and was still there when the dholak was going after midnight. Chakwal is about ninety kilometres from Rawalpindi, and he had no car with him that night."
+      }
+    ]),
+    // Facts, grounds and prayer are declared as plain strings; labels are
+    // assigned below, exactly as casegen.py assigns them, so a hand-written
+    // brief and a drafted one are the same shape in the record.
+    brief: {
+      court: "Court of Session, Rawalpindi",
+      caseNumber: "Sessions Case No. 214/2025",
+      jurisdictionInvoked: "Trial on a challan submitted under CrPC 1898 s.173",
+      petitioners: [
+        {
+          name: "The State",
+          role: "Prosecution",
+          description: "Through the District Public Prosecutor, Rawalpindi.",
+        },
+        {
+          name: "Imran Javed",
+          role: "Complainant",
+          description: "Brother of the deceased and the maker of the first information report.",
+        },
+      ],
+      respondents: [
+        {
+          name: "Bilal Hussain",
+          role: "Accused",
+          description: "Pump attendant at the Al-Barq filling station until his dismissal on 21 February 2025.",
+        },
+        {
+          name: "Unidentified co-accused",
+          role: "Absconder",
+          description: "The second man said to have waited on the motorcycle; not before the court.",
+        },
+      ],
+      facts: [
+        "The deceased Asim Javed managed the Al-Barq filling station on Adiala Road, Rawalpindi. The accused Bilal Hussain worked there as a pump attendant until 21 February 2025, when he was dismissed after a shortfall of Rs. 84,000 was found in night takings he had handled.",
+        "On the night of 14 March 2025, at about 9:40 pm, two shots were fired inside the manager's cabin. The cashier Nadia Sattar says she looked up and saw a man leaving the cabin with a pistol in his hand, whom she recognised as the accused, while a second man waited on a motorcycle at the forecourt.",
+        "FIR No. 411/2025 was registered at Police Station Saddar Bairuni the same night on the report of Imran Javed, brother of the deceased, for an offence under PPC 1860 s.302 read with PPC 1860 s.34.",
+        "The post-mortem conducted on 15 March 2025 recorded two firearm entry wounds on the chest with corresponding exit wounds, and gave the cause of death as haemorrhage and shock.",
+        "The accused was arrested on 17 March 2025. On 19 March 2025 a .30 bore pistol was recovered from a drain off Dhamial Road on his pointation, and was sent with the crime empties to the Punjab Forensic Science Agency.",
+        "The station's recorder was taken into possession but its hard disk is said to be damaged. The prosecution tenders the footage as a copy on a USB drive, with a certificate from the operator who made it.",
+        "The statement of Nadia Sattar recorded under CrPC 1898 s.161 on 15 March 2025 does not name the accused; the identification first appears in a supplementary statement made on 20 March 2025, after the arrest. The accused denies the occurrence and pleads alibi at Chakwal.",
+      ],
+      grounds: [
+        "The prosecution says the killing is qatl-e-amd within PPC 1860 s.300, the shots having been fired with the intention of causing death, and is punishable under PPC 1860 s.302.",
+        "The prosecution says the man who waited on the motorcycle shared a common intention with the assailant, so PPC 1860 s.34 fixes each with the act of the other.",
+        "The prosecution relies on a single eyewitness and says QSO 1984 Art. 17 requires no particular number of witnesses. The defence answers that her account of the second man is what she was told afterwards, and that QSO 1984 Art. 71 admits only what she perceived herself.",
+        "The defence says the recording on the USB drive is not the original. QSO 1984 Art. 75 requires a document to be proved by primary evidence, and the copy is receivable only if the prosecution first brings the case within QSO 1984 Art. 76.",
+        "The defence says the omission of the accused's name from the statement under CrPC 1898 s.161 may be put to the witness in cross-examination under QSO 1984 Art. 141, and that a conviction on this record would not answer Constitution 1973 Art. 10A.",
+      ],
+      prayer: [
+        "The prosecution prays that the accused be convicted of qatl-e-amd under PPC 1860 s.302 and sentenced in accordance with law.",
+        "The prosecution prays that the pistol recovered on the accused's pointation, the crime empties and the forensic report be exhibited and read against him.",
+        "The defence prays that the accused be acquitted, identification and the documentary evidence being unproved, and that the plea of alibi be accepted.",
+      ],
+    },
+    source: "library"
   }
 ];
+
+/**
+ * Labels a declared brief. Mirrors casegen.py: facts are numbered, grounds are
+ * lettered and prayer items are parenthesised lowercase, assigned by position
+ * rather than typed, so the labels are always contiguous.
+ */
+function buildBrief(brief) {
+  if (!brief) return null;
+  const GROUND_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const PRAYER_LABELS = "abcdefghijklmnopqrstuvwxyz";
+  return {
+    court: brief.court ?? null,
+    caseNumber: brief.caseNumber ?? null,
+    jurisdictionInvoked: brief.jurisdictionInvoked ?? null,
+    petitioners: brief.petitioners ?? [],
+    respondents: brief.respondents ?? [],
+    facts: brief.facts.map((text, i) => ({ label: String(i + 1), text })),
+    grounds: brief.grounds.map((text, i) => ({ label: GROUND_LABELS[i], text })),
+    prayer: brief.prayer.map((text, i) => ({ label: PRAYER_LABELS[i], text })),
+  };
+}
 
 async function seed() {
   try {
@@ -227,10 +446,12 @@ async function seed() {
     // Resolved before the first write, so a case citing law the corpus lacks
     // fails the whole seed rather than leaving the library half-updated.
     const prepared = sampleCases.map((c) => {
-      const citations = resolveCitations(corpus, c.title, c.provisions);
+      const citations = resolveCitations(corpus.byKey, c.title, c.provisions);
+      verifyBriefCitations(corpus, c.title, c.brief);
       return {
         ...c,
         citations,
+        brief: buildBrief(c.brief),
         // Identical to how routes/cases.ts renders a generated case, so a
         // library case and a drafted one are indistinguishable in the UI.
         applicableLaws: citations
@@ -246,9 +467,9 @@ async function seed() {
       const existing = await client.query("SELECT id FROM cases WHERE title = $1", [c.title]);
       if (existing.rows.length === 0) {
         await client.query(
-          `INSERT INTO cases (title, area_of_law, difficulty, summary, applicable_laws, petitioner_name, petitioner_role, respondent_name, respondent_role, witnesses, citations, source)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12)`,
-          [c.title, c.areaOfLaw, c.difficulty, c.summary, c.applicableLaws, c.petitionerName, c.petitionerRole, c.respondentName, c.respondentRole, c.witnesses, JSON.stringify(c.citations), c.source]
+          `INSERT INTO cases (title, area_of_law, difficulty, summary, applicable_laws, petitioner_name, petitioner_role, respondent_name, respondent_role, witnesses, citations, brief, source)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12::jsonb, $13)`,
+          [c.title, c.areaOfLaw, c.difficulty, c.summary, c.applicableLaws, c.petitionerName, c.petitionerRole, c.respondentName, c.respondentRole, c.witnesses, JSON.stringify(c.citations), c.brief === null ? null : JSON.stringify(c.brief), c.source]
         );
         console.log(`Seeded case: ${c.title}`);
       } else {
@@ -258,9 +479,9 @@ async function seed() {
         // written here. Student-facing fields the seed owns are refreshed;
         // sessions reference the case by id and are untouched.
         await client.query(
-          `UPDATE cases SET applicable_laws = $2, citations = $3::jsonb, witnesses = $4::jsonb, summary = $5
+          `UPDATE cases SET applicable_laws = $2, citations = $3::jsonb, witnesses = $4::jsonb, summary = $5, brief = $6::jsonb
            WHERE title = $1 AND source = 'library'`,
-          [c.title, c.applicableLaws, JSON.stringify(c.citations), c.witnesses, c.summary]
+          [c.title, c.applicableLaws, JSON.stringify(c.citations), c.witnesses, c.summary, c.brief === null ? null : JSON.stringify(c.brief)]
         );
         console.log(`Refreshed case: ${c.title} (${c.citations.length} provisions)`);
       }

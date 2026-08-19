@@ -60,14 +60,14 @@ export default function SignInPage() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col justify-center pb-20 pt-12">
-      <header className="border-b border-rule pb-6">
+      <header className="masthead-rule pb-6">
         <p className="apparatus text-muted-foreground">
           {mode === "login" ? "Appearance" : "Enrolment"}
         </p>
-        <h1 className="mt-2 text-balance font-serif text-3xl font-medium tracking-tight">
+        <h1 className="display-sm mt-2">
           {mode === "login" ? "Sign in" : "Register"}
         </h1>
-        <p className="mt-3 font-serif text-[0.9375rem] leading-relaxed text-foreground/80">
+        <p className="standfirst mt-3">
           Your sessions, marks and the judge's remarks on your advocacy are
           visible only to you.
         </p>

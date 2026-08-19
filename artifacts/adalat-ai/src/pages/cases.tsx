@@ -12,6 +12,16 @@ import {
   type Case,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Dialog,
   DialogContent,
@@ -28,99 +38,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Loader2,
-  Search,
-  BookOpen,
-  Gavel,
-  Users,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ApiErrorState, getErrorMessage } from "@/components/api-state";
 import { CaseBriefSheet } from "@/components/case-brief";
+import { CaseName } from "@/components/case-name";
 import { useToast } from "@/hooks/use-toast";
+import { counted } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const DRAFTABLE_AREAS = Object.values(DraftableAreaOfLaw);
 
-const DIFFICULTY_STEPS: Record<string, number> = {
-  [Difficulty.Beginner]: 1,
-  [Difficulty.Intermediate]: 2,
-  [Difficulty.Advanced]: 3,
-};
-
-function DifficultyMark({ difficulty }: { difficulty: string }) {
-  const steps = DIFFICULTY_STEPS[difficulty] ?? 1;
-  const labels = ["Junior", "High Court", "Supreme Court"];
-  const colorMap = [
-    "text-seal bg-seal/10 border-seal/20",
-    "text-primary bg-primary/10 border-primary/20",
-    "text-stamp bg-stamp/10 border-stamp/20",
-  ];
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <span aria-hidden="true" className="flex items-end gap-[3px]">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className={cn(
-              "w-[3px] rounded-full transition-all",
-              i < steps
-                ? i === 2
-                  ? "bg-stamp"
-                  : i === 1
-                  ? "bg-primary"
-                  : "bg-seal"
-                : "bg-rule",
-            )}
-            style={{ height: `${6 + i * 3}px` }}
-          />
-        ))}
-      </span>
-      <span
-        className={cn(
-          "apparatus px-1.5 py-0.5 rounded-sm border text-[0.625rem]",
-          colorMap[steps - 1] ?? "text-muted-foreground border-rule",
-        )}
-      >
-        {difficulty}
-      </span>
-    </div>
-  );
-}
-
 /**
- * A case name, set the way a law report sets it.
+ * How hard the bench will be, said rather than drawn.
  *
- * The "v." between two parties is the most recognisable typographic form in
- * law, and rendering it as ordinary text throws that away. Roman for the
- * parties, small italic for the versus — a lawyer reads the shape before the
- * words. Titles that carry no "v." (a writ petition, a reference) are left
- * exactly as they are rather than forced into a form they do not have.
+ * This was three coloured bars rising like a signal-strength meter, in seal,
+ * primary and stamp — three reserved colours spent on decoration, on a page
+ * where stamp means an unverified provision. The word is both more precise and
+ * cheaper.
  */
-function CaseName({ title }: { title: string }) {
-  const parts = title.split(/\s+v\.?\s+/);
-  if (parts.length !== 2) return <>{title}</>;
-
+function DifficultyMark({ difficulty }: { difficulty: string }) {
   return (
-    <>
-      {parts[0]}{" "}
-      <span className="font-normal italic text-muted-foreground">v.</span>{" "}
-      {parts[1]}
-    </>
+    <span className="apparatus shrink-0 text-muted-foreground">
+      {difficulty}
+    </span>
   );
 }
-
-// A cause list counts its matters in words. Digits are for citations and
-// paragraph numbers, which is a distinction the apparatus already makes
-// elsewhere in the record.
-const COUNTS = [
-  "No", "One", "Two", "Three", "Four", "Five",
-  "Six", "Seven", "Eight", "Nine", "Ten",
-];
 
 /**
  * The masthead of the day's cause list.
@@ -138,10 +80,9 @@ function CauseListMasthead({ count }: { count: number }) {
     month: "long",
     year: "numeric",
   });
-  const listed = count <= 10 ? COUNTS[count] : String(count);
 
   return (
-    <header className="border-b-[3px] border-double border-rule pb-7">
+    <header className="masthead-rule pb-7">
       {/* The action sits on the heading line, not beside the standfirst. Left
           to align with the paragraph it ended up floating in dead space beside
           a three-line block, which read as a stray control rather than the
@@ -162,14 +103,14 @@ function CauseListMasthead({ count }: { count: number }) {
       {/* Set lighter and larger than a UI heading would be: Newsreader's
           optical sizing does the work at display size, and weight added on top
           of it reads as shouting rather than as a masthead. */}
-      <h1 className="mt-4 max-w-3xl text-balance font-serif text-[2.5rem] font-normal leading-[0.98] tracking-[-0.022em] sm:text-5xl lg:text-[3.25rem]">
+      <h1 className="display mt-4 max-w-3xl">
         Matters listed before the bench
       </h1>
 
-      <p className="mt-5 max-w-xl font-serif text-[1.0625rem] leading-relaxed text-foreground/80">
-        {listed} {count === 1 ? "matter is" : "matters are"} on the file. Choose
-        one and a side; you will argue it aloud against opposing counsel who
-        objects, before a bench that rules and marks you on the record.
+      <p className="standfirst mt-5">
+        {counted(count)} {count === 1 ? "matter is" : "matters are"} on the file.
+        Choose one and a side; you will argue it aloud against opposing counsel
+        who objects, before a bench that rules and marks you on the record.
       </p>
     </header>
   );
@@ -207,7 +148,7 @@ export default function CasesPage() {
   }, [cases]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-9 pb-16">
       <CauseListMasthead count={Array.isArray(cases) ? cases.length : 0} />
 
       {/* The list's controls sit under its masthead, not inside it: a cause
@@ -216,65 +157,53 @@ export default function CasesPage() {
           file to be worth narrowing. */}
       {Array.isArray(cases) && cases.length > 3 && (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by case title, statute (e.g. § 302 PPC), or facts..."
-              className="w-full rounded-sm border border-rule bg-background py-2 pl-9 pr-4 text-xs placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+          <Input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by matter, provision or facts…"
+            aria-label="Search the cause list"
+            className="max-w-md rounded-sm"
+          />
 
           {/* Only worth showing when there is more than one area to choose
               between; today the file is criminal-only and a lone pill beside
               "ALL" is a control with nothing to do. */}
           {areas.length > 2 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {areas.map((area) => {
-                const active = selectedArea === area;
-                return (
-                  <button
-                    key={area}
-                    onClick={() => setSelectedArea(area)}
-                    className={cn(
-                      "apparatus rounded-sm px-2.5 py-1.5 text-[0.6875rem] transition-all",
-                      active
-                        ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                        : "border border-rule/50 bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground",
-                    )}
-                  >
-                    {area}
-                  </button>
-                );
-              })}
-            </div>
+            <ToggleGroup
+              type="single"
+              value={selectedArea}
+              onValueChange={(v) => v && setSelectedArea(v)}
+              className="justify-start gap-5 self-start"
+            >
+              {areas.map((area) => (
+                <ToggleGroupItem
+                  key={area}
+                  value={area}
+                  className={cn(
+                    "apparatus h-auto rounded-none border-b-2 border-transparent px-0 pb-1 pt-1 text-muted-foreground",
+                    "hover:bg-transparent hover:text-foreground",
+                    "data-[state=on]:border-foreground data-[state=on]:bg-transparent data-[state=on]:text-foreground",
+                  )}
+                >
+                  {area === "ALL" ? "All" : area}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           )}
         </div>
       )}
 
-      {/* Case Grid / Error / Loading States */}
       {isError ? (
         <ApiErrorState error={error} onRetry={() => void refetch()} />
       ) : isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="h-64 animate-pulse space-y-4 rounded-sm border border-rule bg-card/60 p-5"
-            >
-              <div className="h-4 w-24 bg-secondary" />
-              <div className="h-6 w-3/4 bg-secondary" />
-              <div className="h-16 w-full bg-secondary/50" />
+        <div className="divide-y divide-rule/70 border-y border-rule">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="space-y-3 py-7">
+              <Skeleton className="h-3 w-32 rounded-sm" />
+              <Skeleton className="h-6 w-2/3 rounded-sm" />
+              <Skeleton className="h-4 w-full max-w-2xl rounded-sm" />
+              <Skeleton className="h-4 w-1/2 rounded-sm" />
             </div>
           ))}
         </div>
@@ -284,7 +213,7 @@ export default function CasesPage() {
            masthead, so this points at it rather than repeating it — an empty
            screen should say what to do next, not offer the same control twice. */
         <div className="border-b border-rule py-24 text-center">
-          <p className="font-serif text-2xl font-normal">The list is empty.</p>
+          <p className="display-sm">The list is empty.</p>
           <p className="mx-auto mt-3 max-w-sm font-serif leading-relaxed text-muted-foreground">
             Draft a case and it is entered on the file, ready to be called.
           </p>
@@ -292,16 +221,17 @@ export default function CasesPage() {
       ) : filteredCases.length === 0 ? (
         /* Matters exist, the filter hid them. Offering to clear the filter is
            the useful action here; offering to draft another case is not. */
-        <div className="rounded-sm border border-dashed border-rule bg-card/40 py-16 text-center">
-          <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-3 font-serif text-xl font-medium">
-            No matter on the file answers to that.
-          </p>
-          <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-            Every case is still listed — the search or the area filter is what
-            is hiding them.
-          </p>
-          <div className="mt-5 flex justify-center gap-3">
+        <Empty className="border border-dashed border-rule">
+          <EmptyHeader>
+            <EmptyTitle className="font-serif text-xl font-normal">
+              No matter on the file answers to that.
+            </EmptyTitle>
+            <EmptyDescription>
+              Every case is still listed — the search or the area filter is what
+              is hiding them.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
             <Button
               variant="outline"
               size="sm"
@@ -312,82 +242,73 @@ export default function CasesPage() {
             >
               Clear the filter
             </Button>
-          </div>
-        </div>
+          </EmptyContent>
+        </Empty>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredCases.map((c) => (
-            <CaseCard key={c.id} courtCase={c} />
+        /* Set as a list rather than as a grid of tiles. The masthead calls
+           this a cause list and a cause list is a numbered column of matters;
+           three tiles abreast was the dashboard idiom the rest of the app has
+           now left behind. */
+        <ol className="divide-y divide-rule/70 border-y border-rule">
+          {filteredCases.map((c, index) => (
+            <CaseEntry key={c.id} index={index + 1} courtCase={c} />
           ))}
-        </div>
+        </ol>
       )}
     </div>
   );
 }
 
-function CaseCard({ courtCase }: { courtCase: Case }) {
+function CaseEntry({ index, courtCase }: { index: number; courtCase: Case }) {
   return (
-    <article className="court-card flex flex-col justify-between p-5 group relative overflow-hidden">
-      <div className="space-y-3">
-        {/* Top Apparatus Row */}
-        <div className="flex items-center justify-between gap-2 border-b border-rule/60 pb-2.5">
-          <span className="apparatus text-primary font-bold">
+    <li className="grid gap-x-6 gap-y-3 py-7 sm:grid-cols-[3rem_1fr]">
+      <span className="apparatus hidden pt-1.5 tabular-nums text-muted-foreground sm:block">
+        {String(index).padStart(2, "0")}
+      </span>
+
+      <div className="min-w-0">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="apparatus text-muted-foreground">
             {courtCase.areaOfLaw}
-          </span>
+          </p>
           <DifficultyMark difficulty={courtCase.difficulty} />
         </div>
 
-        {/* Case Title */}
-        <h2 className="font-serif text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+        <h2 className="mt-2 font-serif text-2xl font-normal leading-snug tracking-[-0.015em] text-foreground">
           <CaseName title={courtCase.title} />
         </h2>
 
-        {/* Statutory Grounding Pills */}
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-seal" />
-          <p
-            className="line-clamp-1 font-mono text-[0.6875rem] text-foreground/75"
-            title={courtCase.applicableLaws}
-          >
-            {courtCase.applicableLaws}
-          </p>
-        </div>
+        {/* The parties as a law report arrays them, on one line. They were in
+            a bordered inner box with "PETITIONER:" and "RESPONDENT:" labels —
+            a form, inside a list, inside a page. */}
+        <p className="mt-2 font-serif leading-relaxed text-muted-foreground">
+          {courtCase.petitionerName}{" "}
+          <span className="italic">({courtCase.petitionerRole})</span>{" "}
+          <span className="italic">v.</span> {courtCase.respondentName}{" "}
+          <span className="italic">({courtCase.respondentRole})</span>
+        </p>
 
-        {/* Case Summary */}
-        <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+        <p
+          className="mt-2 truncate font-mono text-xs text-foreground/70"
+          title={courtCase.applicableLaws}
+        >
+          {courtCase.applicableLaws}
+        </p>
+
+        <p className="mt-3 max-w-2xl font-serif leading-relaxed text-foreground/85">
           {courtCase.summary}
         </p>
 
-        {/* Parties List */}
-        <div className="rounded-sm bg-secondary/30 p-2.5 text-xs space-y-1.5 border border-rule/40 font-mono">
-          <div className="flex justify-between items-center text-[0.6875rem]">
-            <span className="text-muted-foreground uppercase">Petitioner:</span>
-            <span className="truncate max-w-[180px] font-semibold text-foreground">
-              {courtCase.petitionerRole}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[0.6875rem]">
-            <span className="text-muted-foreground uppercase">Respondent:</span>
-            <span className="truncate max-w-[180px] font-semibold text-foreground">
-              {courtCase.respondentRole}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[0.6875rem] border-t border-rule/50 pt-1">
-            <span className="text-muted-foreground uppercase flex items-center gap-1">
-              <Users className="h-3 w-3" /> Witnesses:
-            </span>
-            <span className="text-foreground font-semibold">
-              {courtCase.witnesses?.length ?? 0} on record
-            </span>
-          </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <ReviewCaseDialog courtCase={courtCase} />
+          <span className="apparatus text-muted-foreground">
+            {counted(courtCase.witnesses?.length ?? 0).toLowerCase()}{" "}
+            {courtCase.witnesses?.length === 1 ? "witness" : "witnesses"} on
+            record
+          </span>
         </div>
       </div>
-
-      {/* Action Footer */}
-      <div className="mt-5 pt-3 border-t border-rule/60">
-        <ReviewCaseDialog courtCase={courtCase} />
-      </div>
-    </article>
+    </li>
   );
 }
 
@@ -401,26 +322,24 @@ function GenerateCaseDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="shrink-0 gap-1.5 shadow-sm">
-          <Sparkles className="h-4 w-4" />
-          <span>Draft New Matter (AI)</span>
-        </Button>
+        <Button className="shrink-0">Draft a matter</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-primary">
-            <Gavel className="h-5 w-5" />
-            <DialogTitle className="font-serif text-xl">Draft Legal Matter</DialogTitle>
-          </div>
-          <DialogDescription className="text-xs">
-            Generate an authentic moot court case grounded in Pakistani statutory law (PPC, CrPC, QSO, Constitution), complete with witnesses and grounds of appeal.
+          <DialogTitle className="display-sm text-left">
+            Draft a matter
+          </DialogTitle>
+          <DialogDescription className="text-left font-serif">
+            A moot case is written from the statutory corpus — facts, parties,
+            witness statements and grounds of appeal, every citation checked
+            against the corpus before it is entered on the file.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-3">
-          <div className="space-y-1.5">
+        <div className="grid gap-5 py-3">
+          <div className="space-y-2">
             <label htmlFor="area" className="apparatus text-muted-foreground">
-              Area of Law
+              Area of law
             </label>
             {/* One draftable area today, so the control reads as a statement
                 rather than a choice — a select holding a single option asks a
@@ -453,12 +372,12 @@ function GenerateCaseDialog() {
             </p>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label
               htmlFor="difficulty"
               className="apparatus text-muted-foreground"
             >
-              Bench Complexity & Difficulty
+              How hard the bench should be
             </label>
             <Select
               value={difficulty}
@@ -514,8 +433,8 @@ function GenerateCaseButton({
           queryClient.invalidateQueries({ queryKey: getListCasesQueryKey() });
           queryClient.refetchQueries({ queryKey: getListCasesQueryKey() });
           toast({
-            title: "Case Drafted Successfully",
-            description: `"${newCase.title}" is now added to the cause library.`,
+            title: "Entered on the file",
+            description: `“${newCase.title}” is now listed.`,
           });
           onSuccess();
         },
@@ -531,17 +450,14 @@ function GenerateCaseButton({
   };
 
   return (
-    <Button onClick={handleGenerate} disabled={generateCase.isPending} className="gap-1.5">
+    <Button onClick={handleGenerate} disabled={generateCase.isPending}>
       {generateCase.isPending ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Generating scenario...</span>
+          <span>Drafting…</span>
         </>
       ) : (
-        <>
-          <Sparkles className="h-4 w-4" />
-          <span>Generate Case</span>
-        </>
+        <span>Draft it</span>
       )}
     </Button>
   );
@@ -575,54 +491,56 @@ function ReviewCaseDialog({ courtCase }: { courtCase: Case }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full gap-1.5 hover:border-primary/60 hover:text-primary">
-          <BookOpen className="h-3.5 w-3.5" />
-          <span>Read Brief & Appear</span>
+        <Button variant="outline" size="sm">
+          Read the brief and appear
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[680px]">
         <DialogHeader className="border-b border-rule pb-4 text-left">
-          <div className="flex items-center justify-between gap-3">
-            <span className="apparatus text-primary font-bold">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="apparatus text-muted-foreground">
               {courtCase.areaOfLaw}
             </span>
             <DifficultyMark difficulty={courtCase.difficulty} />
           </div>
-          <DialogTitle className="pt-2 font-serif text-2xl font-bold leading-snug">
-            {courtCase.title}
+          <DialogTitle className="display-sm pt-2 text-left">
+            <CaseName title={courtCase.title} />
           </DialogTitle>
-          <DialogDescription className="font-mono text-xs text-foreground/80 flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-seal" />
+          <DialogDescription className="font-mono text-xs text-foreground/75">
             {courtCase.applicableLaws}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-2">
-          <section className="space-y-1.5">
-            <h3 className="apparatus text-muted-foreground flex items-center gap-1.5">
-              <BookOpen className="h-3.5 w-3.5" /> Factual Matrix & Summary
+        <div className="space-y-7 py-2">
+          <section>
+            <h3 className="rule-heading">
+              <span>The facts</span>
             </h3>
-            <p className="font-serif text-sm leading-relaxed text-foreground/90 bg-card p-3 rounded-sm border border-rule">
+            <p className="mt-3 font-serif leading-relaxed text-foreground/90">
               {courtCase.summary}
             </p>
           </section>
 
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="bg-card p-3.5 rounded-sm border border-rule">
-              <p className="apparatus text-muted-foreground">Petitioner / Prosecution</p>
-              <p className="mt-1 font-serif font-semibold text-foreground">
+          <section className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <div>
+              <p className="apparatus text-muted-foreground">
+                Petitioner / prosecution
+              </p>
+              <p className="mt-1 font-serif text-lg leading-snug text-foreground">
                 {courtCase.petitionerName}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {courtCase.petitionerRole}
               </p>
             </div>
-            <div className="bg-card p-3.5 rounded-sm border border-rule">
-              <p className="apparatus text-muted-foreground">Respondent / Defense</p>
-              <p className="mt-1 font-serif font-semibold text-foreground">
+            <div>
+              <p className="apparatus text-muted-foreground">
+                Respondent / defence
+              </p>
+              <p className="mt-1 font-serif text-lg leading-snug text-foreground">
                 {courtCase.respondentName}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {courtCase.respondentRole}
               </p>
             </div>
@@ -632,25 +550,30 @@ function ReviewCaseDialog({ courtCase }: { courtCase: Case }) {
 
           {Array.isArray(courtCase.witnesses) &&
             courtCase.witnesses.length > 0 && (
-              <section className="space-y-2">
-                <h3 className="apparatus border-b border-rule pb-1.5 text-muted-foreground flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" /> Witness Statements on File ({courtCase.witnesses.length})
+              <section>
+                <h3 className="rule-heading">
+                  <span>Witness statements on file</span>
+                  <span className="tabular-nums">
+                    {courtCase.witnesses.length}
+                  </span>
                 </h3>
-                <ul className="divide-y divide-rule/70 max-h-48 overflow-y-auto pr-1">
+                <ul className="max-h-56 divide-y divide-rule/70 overflow-y-auto pr-1">
                   {courtCase.witnesses.map(
                     (
                       w: { name: string; role: string; statement: string },
                       idx: number,
                     ) => (
-                      <li key={idx} className="py-2.5 first:pt-0">
+                      <li key={idx} className="py-3 first:pt-2">
                         <div className="flex items-baseline justify-between gap-3">
-                          <span className="font-semibold text-xs text-foreground">{w.name}</span>
-                          <span className="apparatus text-[0.625rem] text-muted-foreground">
+                          <span className="font-serif text-foreground">
+                            {w.name}
+                          </span>
+                          <span className="apparatus shrink-0 text-muted-foreground">
                             {w.role}
                           </span>
                         </div>
-                        <p className="mt-1 font-serif text-xs italic leading-relaxed text-foreground/80 bg-secondary/20 p-2 rounded-sm border border-rule/40">
-                          "{w.statement}"
+                        <p className="mt-1 font-serif text-sm italic leading-relaxed text-foreground/75">
+                          “{w.statement}”
                         </p>
                       </li>
                     ),
@@ -659,24 +582,24 @@ function ReviewCaseDialog({ courtCase }: { courtCase: Case }) {
               </section>
             )}
 
-          <section className="border-t border-rule pt-5 bg-secondary/15 p-4 rounded-sm">
-            <h3 className="apparatus text-foreground font-semibold mb-2">
-              Select Your Representation & Appear
+          <section className="border-t border-rule pt-6">
+            <h3 className="apparatus text-muted-foreground">
+              Which side do you appear for?
             </h3>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
               <Select
                 value={side}
                 onValueChange={(v) => setSide(v as StudentSide)}
               >
-                <SelectTrigger className="sm:w-1/2 bg-background">
+                <SelectTrigger className="sm:w-1/2">
                   <SelectValue placeholder="Choose a side" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={StudentSide.petitioner}>
-                    Appear for Petitioner / State
+                    Petitioner / State
                   </SelectItem>
                   <SelectItem value={StudentSide.respondent}>
-                    Appear for Respondent / Accused
+                    Respondent / accused
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -684,14 +607,12 @@ function ReviewCaseDialog({ courtCase }: { courtCase: Case }) {
               <Button
                 onClick={handleStart}
                 disabled={createSession.isPending}
-                className="sm:w-1/2 gap-1.5 shadow-sm"
+                className="sm:w-1/2"
               >
                 {createSession.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowRight className="h-4 w-4" />
-                )}
-                <span>Enter Courtroom</span>
+                ) : null}
+                <span>Enter the courtroom</span>
               </Button>
             </div>
           </section>

@@ -10,6 +10,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getGetSessionQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VoiceControl } from "@/components/voice-control";
 import {
   Dialog,
@@ -33,37 +35,14 @@ import {
   TurnSpeaker,
 } from "@workspace/api-client-react";
 import type { CourtReasoningStep } from "@workspace/api-client-react";
-import {
-  ChevronRight,
-  UserPlus,
-  Loader2,
-  Gavel,
-  ShieldAlert,
-  Scale,
-  Users,
-  BookOpen,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  Sparkles,
-} from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiErrorState, getErrorMessage } from "@/components/api-state";
 import { CaseBriefArgument } from "@/components/case-brief";
+import { CaseName } from "@/components/case-name";
 import { useToast } from "@/hooks/use-toast";
+import { docket, phaseLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-const PHASE_LABELS: Record<string, string> = {
-  opening: "Opening Submissions",
-  witness_examination: "Examination-in-Chief",
-  cross_examination: "Cross-Examination",
-  closing: "Closing Arguments",
-  verdict: "Judicial Verdict",
-};
-
-function phaseLabel(phase: string): string {
-  return PHASE_LABELS[phase] ?? phase.replace(/_/g, " ");
-}
 
 type Mark = "objection" | "ruling" | "counsel" | "bench" | "witness";
 
@@ -89,9 +68,9 @@ function parseTurn(turn: {
     const [ground, citation] = objection[1].split("—").map((s) => s.trim());
     return {
       mark: "objection",
-      speaker: "Opposing Counsel",
+      speaker: "Opposing counsel",
       citation: citation || null,
-      ground: ground || "Evidentiary Objection",
+      ground: ground || "Evidentiary objection",
       ruling: null,
       text: objection[2] ?? "",
       reasoning,
@@ -104,7 +83,7 @@ function parseTurn(turn: {
   if (ruling) {
     return {
       mark: "ruling",
-      speaker: "The Presiding Bench",
+      speaker: "The bench",
       citation: null,
       ground: null,
       ruling: ruling[1] as "SUSTAINED" | "OVERRULED",
@@ -116,7 +95,7 @@ function parseTurn(turn: {
   if (turn.speaker === TurnSpeaker.student) {
     return {
       mark: "counsel",
-      speaker: "Learned Counsel (You)",
+      speaker: "You",
       citation: null,
       ground: null,
       ruling: null,
@@ -127,7 +106,7 @@ function parseTurn(turn: {
   if (turn.speaker === TurnSpeaker.judge) {
     return {
       mark: "bench",
-      speaker: "The Presiding Bench",
+      speaker: "The bench",
       citation: null,
       ground: null,
       ruling: null,
@@ -138,7 +117,7 @@ function parseTurn(turn: {
   if (turn.speaker === TurnSpeaker.opposing_counsel) {
     return {
       mark: "counsel",
-      speaker: "Opposing Counsel",
+      speaker: "Opposing counsel",
       citation: null,
       ground: null,
       ruling: null,
@@ -148,7 +127,7 @@ function parseTurn(turn: {
   }
   return {
     mark: "witness",
-    speaker: turn.witnessName ? `Witness on Stand — ${turn.witnessName}` : "Witness",
+    speaker: turn.witnessName ? `Witness — ${turn.witnessName}` : "Witness",
     citation: null,
     ground: null,
     ruling: null,
@@ -157,12 +136,49 @@ function parseTurn(turn: {
   };
 }
 
+/**
+ * Where the hearing has reached.
+ *
+ * Five filled boxes in a grid read as a wizard, which invites a student to
+ * click ahead through them; they are stages of a hearing that has to be
+ * argued, not steps in a form. Set as a run of stage names with the current
+ * one underlined — the same mark the nav and the tab heads use — and the ones
+ * already risen from in muted text.
+ */
+function PhaseStrip({ phases, currentIndex }: { phases: string[]; currentIndex: number }) {
+  return (
+    <ol className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-t border-rule/60 pt-3">
+      {phases.map((phase, index) => {
+        const isCurrent = index === currentIndex;
+        const isPast = index < currentIndex;
+
+        return (
+          <li
+            key={phase}
+            aria-current={isCurrent ? "step" : undefined}
+            className={cn(
+              "apparatus flex items-baseline gap-1.5 border-b-2 pb-1",
+              isCurrent
+                ? "border-foreground text-foreground"
+                : "border-transparent",
+              isPast ? "text-muted-foreground" : "",
+              !isCurrent && !isPast ? "text-muted-foreground/45" : "",
+            )}
+          >
+            <span className="tabular-nums">{index + 1}</span>
+            <span>{phaseLabel(phase)}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export default function SessionPage({ id }: { id: string }) {
   const sessionId = parseInt(id, 10);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeSideTab, setActiveSideTab] = useState<"floor" | "brief" | "witnesses" | "statutes">("floor");
 
   const {
     data: session,
@@ -181,9 +197,7 @@ export default function SessionPage({ id }: { id: string }) {
   const { data: grounds = [] } = useListObjectionGrounds();
   const verifiedCitations = useMemo(
     () =>
-      new Set(
-        grounds.filter((g) => g.verified).map((g) => g.citation.trim()),
-      ),
+      new Set(grounds.filter((g) => g.verified).map((g) => g.citation.trim())),
     [grounds],
   );
 
@@ -219,12 +233,9 @@ export default function SessionPage({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3 bg-card p-8 rounded-sm border border-rule shadow-sm">
-          <Gavel className="h-8 w-8 animate-bounce text-primary" />
-          <p className="font-serif text-lg font-semibold">Convening the High Court Chamber</p>
-          <p className="apparatus text-xs text-muted-foreground">Preparing docket and sworn statements...</p>
-        </div>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <p className="apparatus text-muted-foreground">The court is rising</p>
+        <p className="display-sm mt-3">Convening the chamber</p>
       </div>
     );
   }
@@ -233,9 +244,9 @@ export default function SessionPage({ id }: { id: string }) {
 
   if (session.status === SessionStatus.completed) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center gap-3 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <span className="apparatus">Preparing judicial decree and grading...</span>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <p className="apparatus text-muted-foreground">Hearing concluded</p>
+        <p className="display-sm mt-3">The bench is writing its judgment</p>
       </div>
     );
   }
@@ -277,36 +288,30 @@ export default function SessionPage({ id }: { id: string }) {
   const currentIndex = phases.indexOf(session.phase);
 
   return (
-    <div className="flex min-h-[calc(100vh-9.5rem)] flex-col gap-4 pb-4">
-      {/* Top Courtroom HUD Header */}
-      <header className="rounded-sm border border-rule bg-card p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="apparatus text-primary font-bold">
-                Docket No. AD-{session.id.toString().padStart(4, "0")}
-              </span>
-              <span className="text-rule">·</span>
-              <span className="apparatus text-muted-foreground">
-                {session.case.areaOfLaw}
-              </span>
-            </div>
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {session.case.title}
+    <div className="flex min-h-[calc(100vh-12rem)] flex-col gap-6 pb-4">
+      <header className="border-b border-rule pb-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="apparatus flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+              <span className="tabular-nums">{docket(session.id)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{session.case.areaOfLaw}</span>
+              <span aria-hidden="true">·</span>
+              <span>for the {session.studentSide}</span>
+            </p>
+
+            <h1 className="display-sm mt-2">
+              <CaseName title={session.case.title} />
             </h1>
-            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs">
-              <span className="text-muted-foreground">Appearing for:</span>
-              <span className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 font-semibold text-primary border border-primary/20">
-                {session.studentSide.toUpperCase()}
-              </span>
-              <span className="text-rule">·</span>
-              <span className="font-mono text-[0.6875rem] text-muted-foreground truncate max-w-md">
-                {session.case.applicableLaws}
-              </span>
-            </div>
+
+            <p
+              className="mt-2 truncate font-mono text-xs text-muted-foreground"
+              title={session.case.applicableLaws}
+            >
+              {session.case.applicableLaws}
+            </p>
           </div>
 
-          {/* Action Bar */}
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <ObjectionDialog sessionId={sessionId} />
 
@@ -321,82 +326,47 @@ export default function SessionPage({ id }: { id: string }) {
             <Button
               onClick={handleAdvancePhase}
               disabled={advancePhase.isPending}
-              className="gap-1.5 shadow-xs"
             >
               {advancePhase.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
               <span>
                 {session.phase === SessionPhase.closing
-                  ? "Submit for Verdict"
-                  : "Next Phase"}
+                  ? "Submit for judgment"
+                  : "Next stage"}
               </span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* 5-Stage Trial Phase Stepper */}
-        <div className="mt-5 border-t border-rule/60 pt-3">
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-            {phases.map((phase, index) => {
-              const isCurrent = index === currentIndex;
-              const isPast = index < currentIndex;
-
-              return (
-                <div
-                  key={phase}
-                  className={cn(
-                    "flex items-center gap-2 rounded-sm px-2.5 py-1.5 transition-all text-xs",
-                    isCurrent && "bg-primary text-primary-foreground font-semibold shadow-xs",
-                    isPast && "bg-secondary/40 text-muted-foreground border border-rule/50",
-                    !isCurrent && !isPast && "text-muted-foreground/50 opacity-70",
-                  )}
-                >
-                  <span className="font-mono text-[0.6875rem] font-bold opacity-80">
-                    0{index + 1}
-                  </span>
-                  <span className="truncate text-xs">{phaseLabel(phase)}</span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="mt-4">
+          <PhaseStrip phases={phases} currentIndex={currentIndex} />
         </div>
       </header>
 
-      {/* Main Split Grid: Live Record & Bar Table Sidebar */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_25rem]">
-        {/* Central Courtroom Record */}
-        <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-sm border border-card-border bg-card shadow-xs">
-          <div className="flex shrink-0 items-center justify-between border-b border-rule px-4 py-3 sm:px-6 bg-secondary/15">
-            <div className="flex items-center gap-2">
-              <Gavel className="h-4 w-4 text-primary" />
-              <h2 className="apparatus text-foreground font-bold">Record of Judicial Proceedings</h2>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-xs text-seal font-mono">
-                <span className="h-2 w-2 rounded-full bg-seal animate-pulse" />
-                Live Chamber
-              </span>
-              <span className="apparatus tabular-nums text-muted-foreground text-xs">
-                {session.turns.length} {session.turns.length === 1 ? "Entry" : "Entries"}
-              </span>
-            </div>
-          </div>
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-[1fr_21rem] xl:grid-cols-[1fr_24rem] lg:gap-10">
+        {/* The record of proceedings. */}
+        <section className="flex min-h-[28rem] flex-col">
+          <h2 className="rule-heading">
+            <span>Record of proceedings</span>
+            <span className="tabular-nums">
+              {session.turns.length}{" "}
+              {session.turns.length === 1 ? "entry" : "entries"}
+            </span>
+          </h2>
 
-          <ScrollArea ref={scrollRef} className="flex-1 p-2 sm:p-4">
+          <ScrollArea ref={scrollRef} className="-mx-1 flex-1 px-1">
             {session.turns.length === 0 ? (
-              <div className="flex min-h-[24rem] flex-col items-center justify-center px-6 text-center">
-                <div className="rounded-full bg-primary/10 p-4 border border-primary/20 mb-3">
-                  <Gavel className="h-8 w-8 text-primary animate-pulse" />
-                </div>
-                <p className="font-serif text-xl font-semibold">The Court is in Formal Session</p>
-                <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
-                  The Bench is seated. Activate the microphone at the rostrum to deliver your opening submissions or state your appearances.
+              <div className="flex min-h-[22rem] flex-col items-center justify-center px-6 text-center">
+                <p className="display-sm">The court is in session.</p>
+                <p className="mx-auto mt-3 max-w-md font-serif leading-relaxed text-muted-foreground">
+                  The bench is seated and the record is open. Take the rostrum
+                  and make your appearance.
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <ol className="divide-y divide-rule/60">
                 {session.turns.map((turn, index) => (
                   <RecordEntry
                     key={turn.id}
@@ -405,109 +375,89 @@ export default function SessionPage({ id }: { id: string }) {
                     verifiedCitations={verifiedCitations}
                   />
                 ))}
-              </div>
+              </ol>
             )}
           </ScrollArea>
         </section>
 
-        {/* Right Bar Table & Counsel's Desk */}
-        <aside className="flex flex-col gap-4">
-          {/* Voice Rostrum Control Card */}
-          <div className="court-card p-4 space-y-3 bg-card shadow-xs">
-            <div className="flex items-center justify-between border-b border-rule/60 pb-2">
-              <h2 className="apparatus text-foreground font-bold flex items-center gap-1.5">
-                <Scale className="h-4 w-4 text-primary" />
-                Counsel's Rostrum
-              </h2>
-              <span className="apparatus text-muted-foreground text-[0.625rem]">Voice Engine</span>
+        <aside className="flex flex-col gap-8">
+          <div>
+            <h2 className="rule-heading">
+              <span>The rostrum</span>
+            </h2>
+            <div className="pt-4">
+              <VoiceControl
+                sessionId={sessionId}
+                onTurnComplete={handleTurnComplete}
+              />
             </div>
-            <VoiceControl
-              sessionId={sessionId}
-              onTurnComplete={handleTurnComplete}
-            />
           </div>
 
-          {/* Quick Legal Reference Tabs */}
-          <div className="court-card p-4 flex-1 flex flex-col bg-card shadow-xs">
-            {/* Tab Selector */}
-            <div className="flex border-b border-rule/70 gap-1 pb-2">
-              <button
-                onClick={() => setActiveSideTab("brief")}
-                className={cn(
-                  "apparatus px-2.5 py-1 rounded-sm text-xs transition-colors",
-                  activeSideTab === "brief"
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Pleading & Facts
-              </button>
-              <button
-                onClick={() => setActiveSideTab("witnesses")}
-                className={cn(
-                  "apparatus px-2.5 py-1 rounded-sm text-xs transition-colors",
-                  activeSideTab === "witnesses"
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
+          {/* Was a set of hand-rolled buttons whose initial state ("floor") no
+              panel answered to, so the brief opened blank and stayed blank
+              until something was clicked. Radix picks the first head by
+              default and keeps the arrow keys working. */}
+          <Tabs defaultValue="brief" className="flex min-h-0 flex-1 flex-col">
+            <TabsList>
+              <TabsTrigger value="brief">Brief</TabsTrigger>
+              <TabsTrigger value="witnesses">
                 Witnesses ({session.case.witnesses?.length ?? 0})
-              </button>
-              <button
-                onClick={() => setActiveSideTab("statutes")}
-                className={cn(
-                  "apparatus px-2.5 py-1 rounded-sm text-xs transition-colors",
-                  activeSideTab === "statutes"
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Statutes
-              </button>
-            </div>
+              </TabsTrigger>
+              <TabsTrigger value="statutes">Statutes</TabsTrigger>
+            </TabsList>
 
-            {/* Tab Content */}
-            <div className="mt-3 flex-1 overflow-y-auto max-h-[300px] text-xs">
-              {activeSideTab === "brief" && (
-                <div className="space-y-3">
-                  <p className="font-serif leading-relaxed text-foreground/90 bg-secondary/20 p-2.5 rounded-sm border border-rule/50">
-                    {session.case.summary}
-                  </p>
-                  {session.case.brief && (
-                    <CaseBriefArgument brief={session.case.brief} />
-                  )}
-                </div>
+            <TabsContent
+              value="brief"
+              className="max-h-[22rem] overflow-y-auto pr-1"
+            >
+              <p className="font-serif leading-relaxed text-foreground/85">
+                {session.case.summary}
+              </p>
+              {session.case.brief && (
+                <CaseBriefArgument brief={session.case.brief} />
               )}
+            </TabsContent>
 
-              {activeSideTab === "witnesses" && (
-                <div className="space-y-2.5">
-                  {session.case.witnesses?.map((w, idx) => (
-                    <div key={idx} className="p-2.5 rounded-sm bg-secondary/30 border border-rule/60">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-semibold text-foreground">{w.name}</span>
-                        <span className="apparatus text-[0.625rem] text-muted-foreground">{w.role}</span>
-                      </div>
-                      <p className="font-serif text-xs italic text-foreground/80">
-                        "{w.statement}"
-                      </p>
+            <TabsContent
+              value="witnesses"
+              className="max-h-[22rem] overflow-y-auto pr-1"
+            >
+              <ul className="divide-y divide-rule/70">
+                {session.case.witnesses?.map((w, idx) => (
+                  <li key={idx} className="py-3 first:pt-0">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-serif text-foreground">
+                        {w.name}
+                      </span>
+                      <span className="apparatus shrink-0 text-muted-foreground">
+                        {w.role}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <p className="mt-1 font-serif text-sm italic leading-relaxed text-foreground/75">
+                      “{w.statement}”
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </TabsContent>
 
-              {activeSideTab === "statutes" && (
-                <div className="space-y-2">
-                  <p className="apparatus text-muted-foreground">Applicable Legal Provisions:</p>
-                  <div className="p-2.5 rounded-sm bg-secondary/20 border border-rule font-mono text-xs leading-relaxed">
-                    {session.case.applicableLaws}
-                  </div>
-                  <p className="text-[0.6875rem] text-muted-foreground leading-snug">
-                    All citations are evaluated by the Bench ReAct loop against the Pakistan Legal Corpus.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+            <TabsContent
+              value="statutes"
+              className="max-h-[22rem] overflow-y-auto pr-1"
+            >
+              <p className="apparatus text-muted-foreground">
+                Provisions in play
+              </p>
+              <p className="mt-2 font-mono text-xs leading-relaxed text-foreground/85">
+                {session.case.applicableLaws}
+              </p>
+              <p className="mt-4 border-t border-rule pt-3 font-serif text-sm leading-relaxed text-muted-foreground">
+                Every citation either side makes is checked against the corpus
+                before it reaches the record. One that is not in it is marked as
+                such.
+              </p>
+            </TabsContent>
+          </Tabs>
         </aside>
       </div>
     </div>
@@ -539,26 +489,25 @@ function RecordEntry({
     : false;
 
   return (
-    <article
+    <li
       data-mark={turn.mark}
       className={cn(
-        "record-entry p-3 rounded-r-sm border-l-4 transition-all duration-150",
-        turn.mark === "ruling" && "border-primary bg-primary/5 shadow-xs",
-        turn.mark === "objection" && "border-stamp bg-stamp-wash/60",
-        turn.mark === "witness" && "border-seal bg-seal-wash/40",
-        turn.mark === "counsel" && "border-foreground/30 bg-card",
-        turn.mark === "bench" && "border-primary/50 bg-secondary/20",
+        "record-entry py-4",
+        // Only the two marks a student must not miss keep a wash behind them.
+        // Counsel and the bench are told apart by the rule and the name, the
+        // way a transcript tells them apart.
+        turn.mark === "objection" && "pl-4 pr-3",
+        turn.mark === "ruling" && "pl-4 pr-3",
       )}
     >
-      <div className="grid gap-x-4 gap-y-1.5 lg:grid-cols-[9.5rem_1fr_8rem]">
-        {/* Speaker Info Column */}
-        <div className="flex items-center lg:items-start gap-2 lg:flex-col lg:gap-0.5">
-          <span className="apparatus tabular-nums text-muted-foreground/70 text-[0.625rem]">
+      <div className="grid gap-x-5 gap-y-2 lg:grid-cols-[8.5rem_1fr_7.5rem]">
+        <div className="flex items-baseline gap-2 lg:flex-col lg:gap-1">
+          <span className="apparatus tabular-nums text-muted-foreground/70">
             ¶{String(index).padStart(2, "0")}
           </span>
           <span
             className={cn(
-              "apparatus font-bold text-xs",
+              "apparatus",
               turn.mark === "objection" && "text-stamp",
               turn.mark === "ruling" && "text-primary",
               turn.mark === "witness" && "text-seal",
@@ -570,103 +519,92 @@ function RecordEntry({
           </span>
         </div>
 
-        {/* Spoken Words Column */}
-        <div className="min-w-0 space-y-1">
+        <div className="min-w-0 space-y-2">
           {turn.ground && (
-            <div className="flex items-center gap-1.5">
-              <ShieldAlert className="h-3.5 w-3.5 text-stamp" />
-              <span className="apparatus text-stamp font-bold text-xs">
-                Objection: {turn.ground}
-              </span>
-            </div>
+            <p className="apparatus text-stamp">Objection — {turn.ground}</p>
           )}
 
           {turn.ruling && (
-            <div className="my-1">
+            <p>
               <span
-                className={cn(
+                className={
                   turn.ruling === "SUSTAINED"
                     ? "judicial-stamp-sustained"
-                    : "judicial-stamp-overruled",
-                )}
+                    : "judicial-stamp-overruled"
+                }
               >
-                <Gavel className="mr-1 h-3 w-3 inline" />
-                RULING: {turn.ruling}
+                {turn.ruling}
               </span>
-            </div>
+            </p>
           )}
 
-          <p className="font-serif text-sm sm:text-[0.95rem] leading-relaxed text-foreground">
+          <p className="font-serif text-[1.0625rem] leading-relaxed text-foreground">
             {turn.text}
           </p>
 
           {turn.reasoning && <ReasoningTrace steps={turn.reasoning} />}
         </div>
 
-        {/* Citation Provenance Rail */}
-        <div className="flex flex-row flex-wrap items-start justify-end gap-x-2 gap-y-1 lg:flex-col lg:items-end lg:gap-1">
+        {/* The provenance rail. Never conditional on how tidy the output
+            looks: an unverified provision says so beside the words that
+            leant on it, every time. */}
+        <div className="flex flex-row flex-wrap items-baseline gap-x-2 gap-y-1 lg:flex-col lg:items-end">
           {turn.citation && (
             <>
-              <span className="font-mono text-[0.6875rem] font-semibold text-foreground/80">
+              <span className="font-mono text-xs text-foreground/80">
                 {turn.citation}
               </span>
               <span
                 className={cn(
-                  "apparatus flex items-center gap-1 text-[0.625rem]",
+                  "apparatus",
                   isVerified ? "text-seal" : "text-stamp",
                 )}
+                title={
+                  isVerified
+                    ? "Diffed word-for-word against its official source."
+                    : "This provision's text has not been checked against pakistancode.gov.pk. Do not quote it as authoritative."
+                }
               >
-                {isVerified ? (
-                  <>
-                    <CheckCircle2 className="h-3 w-3 inline" />
-                    Verified
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-3 w-3 inline" />
-                    Unverified
-                  </>
-                )}
+                {isVerified ? "✓ Verified" : "⚠ Unverified"}
               </span>
             </>
           )}
         </div>
       </div>
-    </article>
+    </li>
   );
 }
 
 function ReasoningTrace({ steps }: { steps: CourtReasoningStep[] }) {
   return (
-    <details className="group mt-2 rounded-sm border border-rule/70 bg-card/70 p-2.5 text-xs">
-      <summary className="apparatus inline-flex cursor-pointer list-none items-center gap-1.5 text-muted-foreground font-semibold hover:text-foreground">
-        <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90 text-primary" />
-        <Sparkles className="h-3 w-3 text-primary" />
-        <span>Judicial ReAct Deliberation</span>
-        <span className="tabular-nums text-muted-foreground/70 font-normal">
-          ({steps.length} {steps.length === 1 ? "step" : "steps"})
+    <details className="group mt-2 border-l border-rule pl-3">
+      <summary className="apparatus inline-flex cursor-pointer list-none items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground">
+        <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+        <span>
+          How the bench got there ({steps.length}{" "}
+          {steps.length === 1 ? "step" : "steps"})
         </span>
       </summary>
 
-      <ol className="mt-2.5 space-y-2 border-l-2 border-primary/30 pl-3">
+      <ol className="mt-2.5 space-y-2.5">
         {steps.map((step, index) => (
           <li key={index} className="space-y-0.5">
-            <p className="apparatus text-muted-foreground text-[0.625rem]">
-              Step 0{index + 1}
+            <p className="apparatus text-muted-foreground/70 tabular-nums">
+              {index + 1}
             </p>
             {step.thought && (
-              <p className="font-serif text-xs italic text-foreground/85">
-                "{step.thought}"
+              <p className="font-serif text-sm italic leading-snug text-foreground/85">
+                {step.thought}
               </p>
             )}
             {step.action && (
-              <p className="font-mono text-[0.6875rem] text-primary font-semibold">
-                → {step.action}
+              <p className="break-all font-mono text-xs leading-snug text-primary">
+                {step.action}
               </p>
             )}
             {step.observation && (
-              <p className="font-serif text-[0.6875rem] text-foreground/70">
-                Observation: {step.observation}
+              <p className="font-serif text-sm leading-snug text-foreground/60">
+                {step.observation}
               </p>
             )}
           </li>
@@ -713,22 +651,21 @@ function CallWitnessDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 border-seal/40 text-seal hover:bg-seal/10">
-          <UserPlus className="h-4 w-4" />
-          <span>Call Witness</span>
+        <Button variant="outline" size="sm">
+          Call a witness
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl flex items-center gap-2">
-            <Users className="h-5 w-5 text-seal" />
-            Call Witness to the Stand
+          <DialogTitle className="display-sm text-left">
+            Call a witness
           </DialogTitle>
-          <DialogDescription className="text-xs">
-            Select a sworn witness from the case record to examine or cross-examine under oath.
+          <DialogDescription className="text-left font-serif">
+            Sworn witnesses on the case record. The one you call takes the stand
+            and answers only from their statement.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-3">
+        <div className="py-2">
           <Select value={witness} onValueChange={setWitness}>
             <SelectTrigger>
               <SelectValue placeholder="Select a witness on record" />
@@ -736,25 +673,21 @@ function CallWitnessDialog({
             <SelectContent>
               {witnesses.map((w) => (
                 <SelectItem key={w.name} value={w.name}>
-                  <span className="font-medium">{w.name}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">({w.role})</span>
+                  <span className="font-serif">{w.name}</span>
+                  <span className="apparatus ml-2 text-muted-foreground">
+                    {w.role}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <DialogFooter>
-          <Button
-            onClick={handleCall}
-            disabled={!witness || callWitness.isPending}
-            className="gap-1.5"
-          >
+          <Button onClick={handleCall} disabled={!witness || callWitness.isPending}>
             {callWitness.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserPlus className="h-4 w-4" />
-            )}
-            <span>Summon to Stand</span>
+            ) : null}
+            <span>Call to the stand</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -789,13 +722,13 @@ function ObjectionDialog({ sessionId }: { sessionId: number }) {
       setGroundId("");
       setStatement("");
       toast({
-        title: "Objection Registered with the Bench",
-        description: "The Presiding Judge is evaluating the statutory ground.",
+        title: "Objection put to the bench",
+        description: "The judge is considering the ground you raised.",
       });
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "The objection could not be put to the Bench",
+        title: "The objection could not be put to the bench",
         description: getErrorMessage(err),
       });
     }
@@ -804,40 +737,38 @@ function ObjectionDialog({ sessionId }: { sessionId: number }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
+        {/* The one control on the page that keeps a reserved colour, because
+            it is the one that raises an objection. */}
         <Button
           variant="outline"
           size="sm"
-          className="border-stamp/40 bg-stamp-wash text-stamp hover:bg-stamp hover:text-stamp-foreground gap-1.5"
+          className="border-stamp/50 text-stamp"
         >
-          <ShieldAlert className="h-4 w-4" />
-          <span>Object</span>
+          Object
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[540px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl flex items-center gap-2 text-stamp">
-            <ShieldAlert className="h-5 w-5" />
-            Raise Evidentiary Objection
+          <DialogTitle className="display-sm text-left text-stamp">
+            Raise an objection
           </DialogTitle>
-          <DialogDescription className="text-xs">
-            Every ground is anchored in the Qanun-e-Shahadat Order 1984 (QSO) or procedural codes.
+          <DialogDescription className="text-left font-serif">
+            Every ground below is anchored in the Qanun-e-Shahadat Order 1984 or
+            the procedural codes. You cannot object on a ground that is not.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="objection-ground"
-              className="apparatus text-muted-foreground"
-            >
-              Statutory Ground
+        <div className="space-y-5 py-1">
+          <div className="space-y-2">
+            <label htmlFor="objection-ground" className="apparatus text-muted-foreground">
+              Ground
             </label>
             <Select value={groundId} onValueChange={setGroundId}>
               <SelectTrigger id="objection-ground">
                 <SelectValue
                   placeholder={
                     groundsLoading
-                      ? "Loading grounds from QSO 1984..."
+                      ? "Loading grounds…"
                       : "Choose a ground of objection"
                   }
                 />
@@ -846,9 +777,9 @@ function ObjectionDialog({ sessionId }: { sessionId: number }) {
                 {grounds.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
                     <span className="flex flex-col py-0.5 text-left">
-                      <span className="text-sm font-medium">
+                      <span className="font-serif">
                         {g.label}
-                        <span className="ml-2 font-mono text-xs text-primary font-bold">
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
                           {g.citation}
                         </span>
                       </span>
@@ -862,10 +793,13 @@ function ObjectionDialog({ sessionId }: { sessionId: number }) {
             </Select>
           </div>
 
+          {/* The provision itself, with its verification state stated. A
+              student about to quote this in a real courtroom is entitled to
+              know whether anyone has checked it. */}
           {selected && (
-            <figure className="record-entry border-l-primary bg-secondary/30 p-3 rounded-r-sm space-y-1.5">
-              <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 pb-1">
-                <span className="font-mono text-xs font-bold text-foreground">
+            <figure className="border-l-2 border-rule pl-4">
+              <figcaption className="flex flex-wrap items-baseline justify-between gap-2 border-b border-rule/70 pb-1.5">
+                <span className="font-mono text-xs text-foreground">
                   {selected.citation}
                 </span>
                 <span
@@ -873,52 +807,49 @@ function ObjectionDialog({ sessionId }: { sessionId: number }) {
                     "apparatus",
                     selected.verified ? "text-seal" : "text-stamp",
                   )}
+                  title={
+                    selected.verified
+                      ? "Diffed word-for-word against its official source."
+                      : "This provision's text has not been checked against pakistancode.gov.pk. Do not quote it as authoritative."
+                  }
                 >
-                  {selected.verified ? "✓ Verified Statute" : "⚠ Statutory Reference"}
+                  {selected.verified ? "✓ Verified" : "⚠ Unverified"}
                 </span>
               </figcaption>
-              <p className="font-serif text-xs leading-relaxed text-foreground/85">
+              <p className="mt-2 font-serif text-sm leading-relaxed text-foreground/85">
                 {selected.content}
               </p>
             </figure>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label
               htmlFor="objection-statement"
               className="apparatus text-muted-foreground"
             >
-              Counsel's Oral Objection (Optional)
+              What you say to the bench (optional)
             </label>
-            <textarea
+            <Textarea
               id="objection-statement"
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
-              placeholder="My Lord, learned counsel is leading the witness in examination-in-chief contrary to Article 133 QSO..."
-              className="min-h-[80px] w-full resize-none rounded-sm border border-input bg-background p-2.5 font-serif text-xs leading-relaxed focus:border-primary focus:outline-none"
+              placeholder="My Lord, learned counsel is leading the witness in examination-in-chief, contrary to Article 133 of the Qanun-e-Shahadat…"
+              className="min-h-[84px] resize-none rounded-sm font-serif leading-relaxed"
             />
           </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="ghost"
-            onClick={() => setIsOpen(false)}
-            disabled={isPending}
-          >
+          <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isPending}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!groundId || isPending}
-            className="bg-stamp text-stamp-foreground hover:bg-stamp/90 gap-1.5"
+            className="bg-stamp text-stamp-foreground border-stamp"
           >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Gavel className="h-4 w-4" />
-            )}
-            <span>Put Objection to Bench</span>
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            <span>Put it to the bench</span>
           </Button>
         </DialogFooter>
       </DialogContent>
