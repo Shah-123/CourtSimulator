@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1. PostgreSQL Database
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: courtsim_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-legal_case_sim}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-legal_case_sim}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ==========================================
+  # 2. Database Init / Migration & Statute Ingestion Runner
+  # ==========================================
+  db-init:
+    build:
+      context: .
+      dockerfile: ./artifacts/api-server/Dockerfile
+    container_name: courtsim_db_init
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-legal_case_sim}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MODEL_EMBEDDING: ${MODEL_EMBEDDING:-text-embedding-3-small}
+    command: >
+      sh -c "
+        echo '==> Applying Drizzle DB Schema...' &&
+        pnpm --filter @workspace/db run push &&
+        echo '==> Seeding practice cases...' &&
+        node ./scripts/seed.mjs &&
+        echo '==> Ingesting and embedding Pakistani statute corpus...' &&
+        node ./scripts/ingest-statutes.mjs &&
+        echo '==> DB Setup complete!'
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ==========================================
+  # 3. Python AI Reasoning & LangGraph Service
+  # ==========================================
+  ai-service:
+    build:
+      context: .
+      dockerfile: ./artifacts/ai-service/Dockerfile
+    container_name: courtsim_ai_service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-legal_case_sim}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      RERANKER_BACKEND: ${RERANKER_BACKEND:-llm}
+      MODEL_TEXT: ${MODEL_TEXT:-gpt-4o}
+      MODEL_EMBEDDING: ${MODEL_EMBEDDING:-text-embedding-3-small}
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${AI_PORT:-8000}:8000"
+
+  # ==========================================
+  # 4. Express API Server
+  # ==========================================
+  api-server:
+    build:
+      context: .
+      dockerfile: ./artifacts/api-server/Dockerfile
+    container_name: courtsim_api_server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-legal_case_sim}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AI_SERVICE_URL: http://ai-service:8000
+      PORT: 5000
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      MODEL_TEXT: ${MODEL_TEXT:-gpt-4o}
+      MODEL_TTS: ${MODEL_TTS:-gpt-4o-mini-tts}
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      ai-service:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-5000}:5000"
+
+  # ==========================================
+  # 5. Web Frontend & Reverse Proxy
+  # ==========================================
+  frontend:
+    build:
+      context: .
+      dockerfile: ./artifacts/adalat-ai/Dockerfile
+    container_name: courtsim_frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      - api-server
+
+volumes:
+  pgdata:
