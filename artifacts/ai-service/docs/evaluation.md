@@ -66,8 +66,9 @@ for *not* using a general-purpose cross-encoder, which
 text and re-embedded as of the rewrite these re-runs were measured across; a
 later Constitution round repaired more (see the README). That is a count of
 provisions whose *text was replaced*, which is not the same quantity as the
-verification figure — 52 of 53 provisions are now confirmed against an official
-source, the exception being Constitution Art. 199. Retrieval held at
+verification figure — all 53 provisions are now confirmed against an official
+source (Constitution Art. 199 closed on 2026-08-20 against a 2025 print, which
+also caught Art. 10 lagging the Twenty-seventh Amendment). Retrieval held at
 **hit@1 1.00 / MRR 1.00** across all three re-runs — after PPC s.34 and s.375
 were repaired, and again after the full rewrite. `common_intention` still
 returns PPC s.34 at rank 1 with its case-law commentary stripped out, and

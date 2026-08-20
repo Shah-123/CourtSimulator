@@ -19,13 +19,17 @@ dependencies = [
     "rank-bm25>=0.2.2",
     "langgraph>=0.2",
     "langchain-openai>=0.2",
-    # Optional: enables the local cross-encoder reranker. The service falls
-    # back to LLM reranking if these are absent, so it stays deployable on
-    # hosts where a torch install is impractical.
-    "sentence-transformers>=3.0",
 ]
 
 [project.optional-dependencies]
+# The cross-encoder reranker is opt-in because it pulls torch — ~2.5 GB, and a
+# container image an order of magnitude larger — for a backend the measurements
+# rejected: an out-of-domain ms-marco checkpoint dropped the governing provision
+# from rank 2 to rank 10, so reranker_backend defaults to `llm` (docs/retrieval.md).
+# app/rag/reranker.py imports sentence_transformers lazily and falls back, so the
+# service runs unchanged without this extra. Install it to evaluate a legal- or
+# instruction-tuned checkpoint: pip install -e ".[crossencoder]"
+crossencoder = ["sentence-transformers>=3.0"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.6", "httpx>=0.27"]
 # mlflow is an eval-only dependency on purpose. The service must not acquire a
 # tracking library to serve a request, and eval/tracking.py degrades to a no-op

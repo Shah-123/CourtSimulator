@@ -92,17 +92,21 @@ dishonest product. If a task seems to require breaking one, stop and say so.
 
 The domain makes these stricter than normal engineering hygiene.
 
-- **52 of the 53 provisions in `data/statutes/*.json` are diffed word-for-word
-  against an official source and carry `"verified": true`.** QSO 1984 (20),
-  PPC 1860 (15) and CrPC 1898 (10) against the pakistancode.gov.pk prints;
-  Constitution 1973 (7 of 8) against the National Assembly print of 28 February
-  2012. The one exception is **Constitution Art. 199**, which carries a
-  per-provision `"verified": false` and a `verifiedNote`: its text is *later*
-  than that print — it refers to the Federal Constitutional Court and to clause
-  (1A) barring suo motu action — so it cannot be confirmed from that source and
-  needs a current one. Verification is per provision (`section.verified`
-  overrides the file-level flag in `scripts/ingest-statutes.mjs`); do not
-  collapse it back to a per-file claim.
+- **All 53 provisions in `data/statutes/*.json` are diffed word-for-word
+  against an official source and carry `"verified": true`** (as of 2026-08-20).
+  QSO 1984 (20), PPC 1860 (15) and CrPC 1898 (10) against the
+  pakistancode.gov.pk prints; Constitution 1973 (8 of 8) against the
+  post-Twenty-seventh-Amendment print at `data/statutes/administrator9d8e2ecc414c6d3371ac41114b61a2c4.pdf` (PDF created 14 November 2025).
+  **The Constitution's file-level `sourceUrl` still points at the National
+  Assembly print of 28 February 2012 and is now stale** — it is the origin of the
+  text, not the source that verified it; replace it when the canonical URL of the
+  2025 print is known. That older print is also why Art. 10 was briefly wrong:
+  it read "Chief Justice of Pakistan" until the words "Supreme Court of" —
+  inserted by the Constitution (Twenty-seventh Amendment) Act, 2025 — were
+  restored. **A provision verified against a superseded print is not verified;
+  re-diff the instrument when an amendment lands.** Verification is per provision
+  (`section.verified` overrides the file-level flag in
+  `scripts/ingest-statutes.mjs`); do not collapse it back to a per-file claim.
 - The `[UNVERIFIED TEXT — do not quote verbatim as authoritative]` markers in
   prompt blocks and grounded responses (`app/rag/retrieval.py`,
   `app/agents/tools.py`) and the ⚠ badges in the UI **must never be stripped,
@@ -327,9 +331,18 @@ voice remains the one link nobody has listened to.
   (`eval/tracking.py` — metrics, the settings and commit that produced them, and
   the printed report as an artifact; `pnpm run eval:ui` to compare). The store is
   local SQLite and gitignored, so a fresh clone has no history and the recorded
-  baselines in `docs/evaluation.md` remain the thing to quote. Still missing:
-  per-call tracing, CI, Docker, and surfacing cost per *session* in the app
-  rather than only in the harness.
+  baselines in `docs/evaluation.md` remain the thing to quote. **Docker is done
+  and verified end to end on 2026-08-20**: `docker compose up --build` brings up
+  Postgres, a one-shot init container, the AI service, Express and nginx, and the
+  running stack was checked by response code (`/api/healthz` 200, `/api/cases`
+  200, `/api/auth/me` 401), by corpus state (53/53 embedded) and by a live
+  retrieval that put QSO 71 first for a hearsay query and kept the
+  `[UNVERIFIED TEXT ...]` marker on Const. Art. 199. Host ports are `DOCKER_*_PORT`
+  and offset from the dev-server ports on purpose — `API_PORT` is the Vite dev
+  proxy target, so reusing it collided with `pnpm run dev:api`. The cross-encoder
+  reranker moved to an opt-in `crossencoder` extra, which is what keeps the AI
+  image at 748 MB rather than ~3 GB. Still missing: per-call tracing, CI, and
+  surfacing cost per *session* in the app rather than only in the harness.
 - **Security & contract fixes (#8).** User scoping is **done**: `users` (scrypt
   password hashing), a stateless signed session cookie, and rate limiting keyed
   on both email and IP (`lib/auth.ts`, `lib/rate-limit.ts`). `requireUser` is
@@ -346,13 +359,17 @@ voice remains the one link nobody has listened to.
   `pnpm run eval:redteam` puts 36 attacks through the courtroom and the verdict
   scorer and 0 land, because opposing counsel objects to injected instructions
   as irrelevant. Build the guard when an attack lands, and add the attack first.
-- **Corpus verification — done except one provision.** 52 of 53 are diffed
-  against their official source (§2). Outstanding: **Constitution Art. 199**,
-  which needs a print later than 28 February 2012. Get one, run
-  `python scripts/verify-statutes.py constitution-1973 --source <pdf>`, then set
-  `"verified": true` on that provision and `pnpm run statutes:reindex`.
-  `data/statutes/administrator9d8e2ecc*.pdf` is a second, differently-paginated
-  Constitution print already in the repo and is worth trying first.
+- **Corpus verification — done, 53 of 53** (2026-08-20). Art. 199 was diffed
+  clean against `data/statutes/administrator9d8e2ecc414c6d3371ac41114b61a2c4.pdf`, which turned out to be a post-Twenty-seventh-Amendment
+  (2025) print, not merely post-26th. The same run caught **Art. 10** as stale —
+  the corpus had "Chief Justice of Pakistan" where the 2025 print reads "Chief
+  Justice of Supreme Court of Pakistan" — so it was corrected and re-embedded.
+  Two consequences to carry forward: the Constitution's `sourceUrl` is still the
+  2012 NA print and wants replacing with the canonical URL of the 2025 one, and
+  **no provision is unverified any more, so the ⚠ badge and the
+  `[UNVERIFIED TEXT ...]` marker currently never fire.** The machinery is intact
+  and must stay (§2) — it simply has nothing to flag. `docs/practice-script.md`
+  built a demo beat on Art. 199 reading ⚠ and has been rewritten accordingly.
 
 ---
 

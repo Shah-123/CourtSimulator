@@ -1,21 +1,29 @@
-node_modules
+# Docker matches these against the context root only unless they start with **/,
+# and this is a pnpm workspace: nine nested node_modules trees (lib/*, artifacts/*,
+# scripts) would otherwise be copied in as dangling symlink farms, because the root
+# node_modules/.pnpm store they point into is itself ignored.
+**/node_modules
 .pnpm-store
-.venv
-venv
-__pycache__
-*.pyc
-*.pyo
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
 .git
 .gitignore
-.ruff_cache
-.pytest_cache
+**/.ruff_cache
+**/.pytest_cache
 mlflow.db
 mlartifacts
-dist
+**/dist
 tmp
 out-tsc
-*.tsbuildinfo
-*.pdf
+**/*.tsbuildinfo
+
+# 31 MB of official statute prints live in data/statutes. They are the user's
+# verification sources, not runtime inputs — ingest reads the .json files.
+**/*.pdf
+
 .env
 .env.local
 .vscode

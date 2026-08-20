@@ -70,7 +70,11 @@ correctly reporting that the whole corpus is out of its distribution.
 **Conclusion.** An out-of-domain cross-encoder is worse than no reranker. The
 LLM backend is the default. `cross_encoder` remains available for when a
 legal- or instruction-tuned checkpoint (e.g. a BGE reranker) is worth the
-weights — the interface is unchanged, only `RERANKER_BACKEND` moves.
+weights — the interface is unchanged, only `RERANKER_BACKEND` moves. Its
+weights are no longer a base dependency, though: torch is an opt-in extra
+(`pip install -e "artifacts/ai-service[crossencoder]"`), so the container image
+does not carry 2.5 GB for a backend the measurement rejected. `reranker.py`
+imports it lazily and degrades to the LLM backend when it is absent.
 
 The LLM reranker also demonstrates domain reasoning the bi-encoders cannot: on
 the same query it promotes **Art. 46** (statements by a person who cannot be

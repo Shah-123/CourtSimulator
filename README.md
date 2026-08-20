@@ -102,6 +102,8 @@ scripts/            db setup, seeding, statute ingestion
 ```bash
 pnpm install
 pip install -e artifacts/ai-service        # or: pip install -e "artifacts/ai-service[dev]"
+# The cross-encoder reranker is an opt-in extra ("...[crossencoder]") — it pulls
+# torch for a backend the evaluation rejected. The LLM default needs nothing extra.
 ```
 
 ### 2. Configure
@@ -200,7 +202,7 @@ cross-examination → closing → verdict.**
   generated output.
 - **Keep OpenAI credentials out of the web app** — they are consumed only by the
   API and AI services.
-- **The statute corpus is verified — 52 of 53 provisions.** Every provision was
+- **The statute corpus is verified — all 53 provisions.** Every provision was
   originally written from model knowledge, and each has since been diffed
   word-for-word against an official source with `pnpm run statutes:verify`, with
   the wording replaced from the source wherever the two disagreed.
@@ -208,17 +210,26 @@ cross-examination → closing → verdict.**
   **Qanun-e-Shahadat Order 1984 20/20, Pakistan Penal Code 15/15, Code of
   Criminal Procedure 10/10** against the
   [pakistancode.gov.pk](https://pakistancode.gov.pk) prints, and **Constitution
-  1973 7/8** against the National Assembly print of 28 February 2012.
+  1973 8/8** against a post-Twenty-seventh-Amendment print of November 2025.
 
-  **The exception is Constitution Art. 199**, and it is instructive: the corpus
-  text is *later* than that print — it refers to the Federal Constitutional
-  Court and to clause (1A) barring suo motu action — so the 2012 source cannot
-  confirm it. It carries a per-provision `"verified": false` with a note saying
-  why, and everything retrieved from it is labelled ⚠ in the interface. That is
-  the article every writ petition is filed under, so the gap is disclosed rather
-  than rounded away. Verification is **per provision**, not per statute: a
-  file-level flag would either have marked Art. 199 verified because its
-  neighbours were, or hidden seven diffed articles behind the one that is not.
+  **Constitution Art. 199 was the last one, and how it closed is the instructive
+  part.** For months it carried `"verified": false`, because its text was *later*
+  than the National Assembly print of 28 February 2012 that confirmed its seven
+  neighbours: it refers to the Federal Constitutional Court and to clause (1A)
+  barring suo motu action, and a 2012 source cannot vouch for either. Re-running
+  the verifier against a 2025 print confirmed it word-for-word — and, in the same
+  pass, caught **Art. 10 drifting the other way**. Art. 10 had been marked
+  verified on the strength of the 2012 print and was accurate against it, but the
+  Twenty-seventh Amendment (2025) inserted "Supreme Court of" into its Review
+  Board clause, so the corpus had fallen a sentence behind the law. It was
+  corrected and re-embedded.
+
+  The lesson is sharper than the original gap: **a provision verified against a
+  superseded print is not verified.** Verification is per provision, not per
+  statute — a file-level flag would have marked Art. 199 verified because its
+  neighbours were, or hidden seven diffed articles behind the one that was not —
+  and it is also per *edition*, which is why the instrument gets re-diffed when an
+  amendment lands rather than trusting a flag set years earlier.
 
   The repair also found that three Constitution articles were not merely
   unchecked but **corrupted**: Art. 4 had a paragraph of 1985 commencement
@@ -282,10 +293,11 @@ objection ruling.
 The web app presents a session as a **record of proceedings** rather than a chat
 log: numbered paragraphs, a ruled speaker column, and a provenance rail carrying
 every provision an agent relied on beside the words it produced. The rail reads
-the corpus's own `verified` flag per provision, so 52 of 53 now read ✓ verified
-while Constitution Art. 199 — the one provision whose source is out of date —
-reads ⚠, and a citation the corpus does not recognise is marked too, rather than
-passing silently.
+the corpus's own `verified` flag per provision, so all 53 currently read
+✓ verified; a provision whose source went stale would read ⚠, and a citation the
+corpus does not recognise is marked too, rather than passing silently. The ⚠ path
+is live and load-bearing even with nothing flagged today — it is what the next
+amendment lands on.
 
 Note that a case stores its `citations` as a snapshot taken when it was
 generated, so cases drafted before the corpus was verified still show ⚠ against
@@ -311,5 +323,13 @@ successful sign-in forgives the account's counter but not the address's.
 Per-address limiting only distinguishes callers when Express can see the real
 client address, which behind a proxy means setting `TRUST_PROXY`.
 
-Planned: an LLMOps layer (cost/latency tracking, tracing, CI, Docker) and the
-remaining security hardening (prompt-injection guards on transcribed speech).
+The whole stack runs in containers: `docker compose up --build` brings up
+PostgreSQL, a one-shot init container (schema push, seed, corpus embedding), the
+Python AI service, Express and an nginx front end that serves the SPA and proxies
+`/api/` — preserving the rule that the browser only ever talks same-origin. Host
+ports are published as `DOCKER_*_PORT` and default one above the dev-server ports,
+so `docker compose up` and `pnpm run dev:api` can run at the same time.
+
+Planned: the rest of the LLMOps layer (per-call tracing, CI, cost per session
+surfaced in the app rather than only in the harness) and the remaining security
+hardening (prompt-injection guards on transcribed speech).

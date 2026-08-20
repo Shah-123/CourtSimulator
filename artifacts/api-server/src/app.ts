@@ -57,7 +57,10 @@ app.use(cookieParser());
 // oversized body is only accepted where audio is expected, and it is set to
 // OpenAI's own 25 MB transcription limit: anything larger could not be
 // transcribed at the next hop anyway.
-app.use("/api/sessions/:id/voice-turns", express.json({ limit: "25mb" }));
+app.use(
+  ["/api/sessions/:id/voice-turns", "/api/sessions/:id/interject"],
+  express.json({ limit: "25mb" }),
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -171,27 +171,39 @@ Each ground rests on the Qanun-e-Shahadat or the Code of Criminal Procedure, and
 both have been diffed word-for-word against the official pakistancode.gov.pk
 text in full — QSO 20/20, CrPC 10/10, and the Penal Code 15/15 alongside them.
 
-To see the badge do the other thing, the ⚠ has moved — and to a better place
-than the Penal Code ever was. In a second tab, open the case library and read
-the brief for the seeded Constitutional case **Asma Bibi v. Board of Revenue**,
-whose applicable laws are *Constitution Art. 199 & Art. 25*. Art. 25 reads ✓.
-**Art. 199 reads ⚠**, and it is the only provision in the whole corpus that
-does. (Read the brief rather than starting a session — this is a detour, and
-Round 4 picks the criminal hearing back up where you left it.)
+**Note for the panel: as of 20 August 2026 every provision reads ✓, so there is
+no ⚠ to point at in the corpus.** That is a recent change and the story behind it
+is the better answer to "how do you know your law is right?" — tell it rather
+than hunting for a badge that will not appear.
 
-That is worth pausing on. Art. 199 is not flagged because its text disagrees
-with the source — it is flagged because it is *later* than the source: it refers
-to the Federal Constitutional Court and to clause (1A) barring suo motu action,
-neither of which appears in the National Assembly print of 28 February 2012 the
-other seven articles were confirmed against. The provision carries a note saying
-exactly that.
+Until that date Constitution **Art. 199** carried ⚠, and not because its text
+disagreed with the source. It was flagged because it was *later* than the source:
+it refers to the Federal Constitutional Court and to clause (1A) barring suo motu
+action, neither of which appears in the National Assembly print of 28 February
+2012 that its seven neighbours were confirmed against. The system declined to
+vouch for the article every writ petition in Pakistan is filed under, rather than
+rounding the gap away.
 
-So the article every writ petition in Pakistan is filed under is the one the
-system declines to vouch for, standing beside seven verified neighbours in the
-same file. A file-level flag could not have produced that: it would have marked
-Art. 199 verified because its neighbours were, or hidden seven confirmed
-articles behind the one that is not. The badge reads the corpus's own
-per-provision flag rather than assuming.
+Re-running the verifier against a **2025 print** confirmed Art. 199 word-for-word
+— and caught **Art. 10 drifting the other way**. Art. 10 had been marked verified
+on the 2012 print and was accurate against it, but the Twenty-seventh Amendment
+(2025) inserted "Supreme Court of" into its Review Board clause, so the corpus had
+fallen a sentence behind the law. It was corrected and re-embedded; the ingest
+re-embedded exactly one provision of fifty-three.
+
+The point to make out loud: **a provision verified against a superseded print is
+not verified.** Per-provision flags are what made both halves visible — a
+file-level flag would have marked Art. 199 verified because its neighbours were,
+and would never have surfaced Art. 10 at all.
+
+**To show the honesty machinery actually firing**, use the citation audit instead,
+which does not depend on anything being unverified. Any citation the corpus does
+not recognise is marked rather than passing silently — a session in which counsel
+cites a provision that does not exist gets it flagged in the provenance rail, and
+the verdict's legal-reasoning score treats the audit as ground truth. (Verified
+20 August 2026 against the running stack: a text citing real QSO Art. 71 and
+invented "Qanun-e-Shahadat Art. 402" returns 1 verified, 1 not-found, 50%
+accuracy.)
 
 ---
 

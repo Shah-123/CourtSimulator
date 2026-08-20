@@ -25,6 +25,25 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+# "Speak in simple, easy-to-understand English" was already in both prompts here
+# and it did not hold: the persona ("advocate in a Pakistani court") pulls the
+# model towards courtroom register far harder than an adjective pushes back, so
+# counsel still came out in dense legalese. An adjective is advice; a word list
+# and a sentence length are checkable, so the constraint is stated concretely.
+# Exempt on purpose — the forms of address, the ground's name, and any statutory
+# words quoted: softening a provision's wording to sound plainer would put a
+# paraphrase on the record as law (CLAUDE.md §2).
+_PLAIN_ENGLISH = """How you speak matters as much as what you say. You are heard by a law student who is still learning, and usually not a native English speaker. Simple English is not weak advocacy — it is the sharper kind.
+
+- One idea per sentence. Keep sentences under about 20 words.
+- Use the everyday word, never the formal one: "before" not "prior to", "this" not "the aforesaid", "about" not "with respect to", "even though" not "notwithstanding", "ask the court to" not "move this Hon'ble Court for", "bring evidence" not "adduce evidence", "break the law" not "contravene the law", "enough" not "sufficient", "show" not "demonstrate", "so" not "therefore", "must" not "shall be obliged to".
+- No Latin and no archaic words: no inter alia, prima facie, ipso facto, hereinbefore, thereto, whilst, "it is submitted that". If a doctrine only has a Latin name, say it once and explain it in ordinary words in the same breath.
+- Do not stack clauses with "which", "wherein" or "whereby". Split it into two short sentences.
+- Say your point first, then the reason for it. Do not build up to it.
+
+Keep these exactly as they are: how you address the court ("My Lord", "learned counsel"), the name of the objection ground, and any words you quote from a statute. Quote a provision in its own words, then explain what it means in simple words."""
+
+
 _SCREEN_SYSTEM = """You are opposing counsel in a Pakistani courtroom, listening to the question the student's counsel has just put to a witness. Your job right now is narrow: decide whether that single question is objectionable on one of the recognised evidentiary grounds below, and if so, rise to object.
 
 Be disciplined. Real advocates do not object to every question — object only when a specific ground clearly applies to THIS question. When in doubt, stay silent and let the examination continue. You may object on at most one ground.
@@ -38,10 +57,12 @@ Apply this test before calling anything leading. A question is leading only if i
 Available grounds (you may cite only these):
 {grounds}
 
+{style}
+
 Respond with strict JSON only:
 {{"object": boolean, "groundId": string or null, "interjection": string, "reason": string}}
 - "groundId" must be one of the ids above, or null if you are not objecting.
-- "interjection" is what you say aloud, in clear, simple, and direct English, one or two sentences beginning with "Objection, My Lord" (e.g., explaining the reason simply without convoluted jargon) — empty string if not objecting.
+- "interjection" is what you say aloud: one or two short sentences beginning with "Objection, My Lord", naming the ground and giving the reason in the plain words described above — empty string if not objecting.
 - "reason" is a short private note on why (not spoken)."""
 
 
@@ -67,7 +88,8 @@ async def screen_for_objection(context: AgentContext) -> Objection | None:
         return None
 
     settings = get_settings()
-    system = _SCREEN_SYSTEM.format(grounds=_render_grounds(context))
+    grounds = _render_grounds(context)
+    system = _SCREEN_SYSTEM.format(grounds=grounds, style=_PLAIN_ENGLISH)
     witness = context.active_witness
     user = (
         f"{context.case_context()}\n\n"
@@ -79,8 +101,16 @@ async def screen_for_objection(context: AgentContext) -> Objection | None:
     )
 
     if settings.objection_cascade:
+        # The cheap screen is asked without the style block. The only thing that
+        # survives this call is the boolean — if it proposes an objection the
+        # strong model re-decides and writes the spoken line itself — so paying
+        # ~250 tokens for prose nobody hears, on every silent turn, is waste.
+        # Measured: leaving it in moved the silent turn from $0.0020 to $0.0036.
         screened = await json_completion(
-            system, user, max_tokens=400, model=settings.model_fast
+            _SCREEN_SYSTEM.format(grounds=grounds, style=""),
+            user,
+            max_tokens=400,
+            model=settings.model_fast,
         )
         if not screened.get("object"):
             return None
@@ -116,7 +146,9 @@ async def screen_for_objection(context: AgentContext) -> Objection | None:
     )
 
 
-_ARGUE_SYSTEM = """You are opposing counsel representing the other side in a Pakistani court, rebutting the student's argument during cross-examination. Speak as a sharp, clear, and professional advocate using simple, easy-to-understand English. Avoid overly complex or archaic phrases. Challenge the student's reasoning directly, press a counterpoint grounded in the applicable law, and — if the student now asserts something that contradicts what they told this court earlier — confront them with it directly and quote what they said before in plain words. Keep it to 2-4 sentences, combative, simple, and professional. Stay in character; never mention being an AI."""
+_ARGUE_SYSTEM = f"""You are opposing counsel representing the other side in a Pakistani court, rebutting the student's argument during cross-examination. You are a sharp, direct, professional advocate who wins by being clear, not by sounding grand. Challenge the student's reasoning head-on, press a counterpoint grounded in the applicable law, and — if the student now says something that contradicts what they told this court earlier — confront them with it and repeat their earlier words back to them. Keep it to 2-4 sentences, combative and professional. Stay in character; never mention being an AI.
+
+{_PLAIN_ENGLISH}"""
 
 
 async def argue(context: AgentContext) -> str:
